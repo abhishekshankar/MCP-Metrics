@@ -1,0 +1,256 @@
+name: web-vitals
+description: Core Web Vitals performance tracking (LCP, CLS, INP, FCP, TTFB) for GA4 via GTM
+description_long: |
+  Tracks Core Web Vitals and additional performance metrics using the web-vitals library.
+  Measures: LCP (Largest Contentful Paint), CLS (Cumulative Layout Shift), 
+  INP (Interaction to Next Paint), FCP (First Contentful Paint), TTFB (Time to First Byte).
+  Includes dataLayer push with full attribution data for debugging.
+version: "1.0"
+category: performance
+
+# Web Vitals events
+events:
+  - name: web_vitals_lcp
+    trigger_type: customEvent
+    trigger_config:
+      eventName: webVitals
+      filter:
+        - type: "variable"
+          variable: "{{Event}}"
+          condition: "equals"
+          value: "webVitals"
+    parameters:
+      - metric_name
+      - metric_value
+      - metric_rating
+      - metric_delta
+      - page_url
+      - debug_target
+      - attribution_element
+      - attribution_load_time
+      - attribution_render_time
+
+  - name: web_vitals_cls
+    trigger_type: customEvent
+    trigger_config:
+      eventName: webVitals
+    parameters:
+      - metric_name
+      - metric_value
+      - metric_rating
+      - metric_delta
+      - page_url
+      - debug_target
+      - attribution_largest_shift_source
+      - attribution_largest_shift_value
+      - attribution_largest_shift_time
+
+  - name: web_vitals_inp
+    trigger_type: customEvent
+    trigger_config:
+      eventName: webVitals
+    parameters:
+      - metric_name
+      - metric_value
+      - metric_rating
+      - metric_delta
+      - page_url
+      - debug_target
+      - attribution_event_target
+      - attribution_event_time
+      - attribution_event_type
+      - attribution_load_state
+
+  - name: web_vitals_fcp
+    trigger_type: customEvent
+    trigger_config:
+      eventName: webVitals
+    parameters:
+      - metric_name
+      - metric_value
+      - metric_rating
+      - page_url
+      - debug_target
+
+  - name: web_vitals_ttfb
+    trigger_type: customEvent
+    trigger_config:
+      eventName: webVitals
+    parameters:
+      - metric_name
+      - metric_value
+      - metric_rating
+      - page_url
+      - debug_target
+      - attribution_cache_duration
+      - attribution_dns_duration
+      - attribution_connection_duration
+      - attribution_request_duration
+
+# DataLayer specification
+dataLayer:
+  helper_snippet: |
+    <!-- Web Vitals Tracking - Add this before GTM container snippet -->
+    <script type="module">
+    import {
+      onLCP,
+      onCLS,
+      onINP,
+      onFCP,
+      onTTFB
+    } from 'https://unpkg.com/web-vitals@4/dist/web-vitals.attribution.js';
+
+    function sendToDataLayer(metric) {
+      window.dataLayer = window.dataLayer || [];
+      
+      const payload = {
+        event: 'webVitals',
+        webVitalsMeasurement: {
+          name: metric.name,
+          value: Math.round(metric.value * 100) / 100,
+          valueRounded: Math.round(metric.value),
+          rating: metric.rating,
+          delta: Math.round(metric.delta * 100) / 100,
+          deltaRounded: Math.round(metric.delta),
+          id: metric.id,
+          navigationType: metric.navigationType
+        },
+        page_url: window.location.href,
+        page_path: window.location.pathname,
+        timestamp: new Date().toISOString()
+      };
+
+      // Add attribution data if available
+      if (metric.attribution) {
+        payload.webVitalsAttribution = {};
+        
+        switch(metric.name) {
+          case 'LCP':
+            payload.webVitalsAttribution.element = metric.attribution.largestShiftTarget || metric.attribution.element;
+            payload.webVitalsAttribution.loadTime = metric.attribution.largestShiftTime;
+            payload.webVitalsAttribution.renderTime = metric.attribution.renderTime;
+            break;
+          case 'CLS':
+            payload.webVitalsAttribution.largestShiftSource = metric.attribution.largestShiftSource;
+            payload.webVitalsAttribution.largestShiftValue = metric.attribution.largestShiftValue;
+            payload.webVitalsAttribution.largestShiftTime = metric.attribution.largestShiftTime;
+            break;
+          case 'INP':
+            payload.webVitalsAttribution.eventTarget = metric.attribution.eventTarget;
+            payload.webVitalsAttribution.eventTime = metric.attribution.eventTime;
+            payload.webVitalsAttribution.eventType = metric.attribution.eventType;
+            payload.webVitalsAttribution.loadState = metric.attribution.loadState;
+            break;
+          case 'TTFB':
+            payload.webVitalsAttribution.cacheDuration = metric.attribution.cacheDuration;
+            payload.webVitalsAttribution.dnsDuration = metric.attribution.dnsDuration;
+            payload.webVitalsAttribution.connectionDuration = metric.attribution.connectionDuration;
+            payload.webVitalsAttribution.requestDuration = metric.attribution.requestDuration;
+            break;
+        }
+      }
+
+      window.dataLayer.push(payload);
+    }
+
+    // Subscribe to all Web Vitals metrics
+    onLCP(sendToDataLayer);
+    onCLS(sendToDataLayer);
+    onINP(sendToDataLayer);
+    onFCP(sendToDataLayer);
+    onTTFB(sendToDataLayer);
+    </script>
+
+  spec:
+    webVitals:
+      description: Core Web Vitals measurement event
+      parameters:
+        event:
+          type: string
+          value: "webVitals"
+          description: Event name for GTM trigger
+        webVitalsMeasurement:
+          type: object
+          properties:
+            name:
+              type: string
+              enum: ["LCP", "CLS", "INP", "FCP", "TTFB", "FID"]
+              description: Web Vitals metric name
+            value:
+              type: number
+              description: Raw metric value in milliseconds (or unitless for CLS)
+            valueRounded:
+              type: integer
+              description: Rounded value for reporting
+            rating:
+              type: string
+              enum: ["good", "needs-improvement", "poor"]
+              description: Performance rating based on thresholds
+            delta:
+              type: number
+              description: Change from previous measurement (CLS accumulates)
+            id:
+              type: string
+              description: Unique identifier for this measurement
+            navigationType:
+              type: string
+              enum: ["navigate", "reload", "back-forward", "prerender"]
+              description: Navigation type that triggered the metric
+        page_url:
+          type: string
+          description: Full page URL when metric was recorded
+        page_path:
+          type: string
+          description: Page path for grouping
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO timestamp of measurement
+
+# GA4 recommended thresholds
+thresholds:
+  LCP:
+    good: 2500
+    needs_improvement: 4000
+    unit: "milliseconds"
+  CLS:
+    good: 0.1
+    needs_improvement: 0.25
+    unit: "unitless"
+  INP:
+    good: 200
+    needs_improvement: 500
+    unit: "milliseconds"
+  FCP:
+    good: 1800
+    needs_improvement: 3000
+    unit: "milliseconds"
+  TTFB:
+    good: 800
+    needs_improvement: 1800
+    unit: "milliseconds"
+
+# GTM Template reference (optional - for custom template import)
+gtm_template:
+  name: "Core Web Vitals"
+  gallery_url: "https://tagmanager.google.com/gallery/#/owners/gtm-templates-simo-ahava/templates/core-web-vitals"
+  source_url: "https://github.com/google-marketing-solutions/web-vitals-gtm-template"
+
+# Additional configuration options
+config_options:
+  - name: namespace_objects
+    type: boolean
+    default: false
+    description: "Store each metric in its own namespace (webVitalsMeasurement.LCP, etc.)"
+  - name: collect_all_metrics
+    type: boolean
+    default: true
+    description: "Collect FCP and TTFB in addition to Core Web Vitals"
+  - name: send_attribution
+    type: boolean
+    default: true
+    description: "Include attribution data for debugging performance issues"
+  - name: report_all_changes
+    type: boolean
+    default: false
+    description: "Report all metric updates (not just the final value)"

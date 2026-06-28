@@ -257,3 +257,63 @@ def health_history(
         }
         for h in history
     ]
+
+
+class SiteAnalysisRequest(BaseModel):
+    max_pages: int = Query(50, ge=1, le=100)
+    crawl_depth: int = Query(3, ge=1, le=5)
+
+
+@router.post("/{domain}/analyze")
+def analyze_site(
+    domain: str,
+    body: SiteAnalysisRequest,
+    environment: str = Query("prod"),
+    db: Session = Depends(get_db),
+    role: str = Depends(require_admin),
+):
+    """Analyze site structure with Playwright crawler (like jtrackingai).
+
+    Discovers pages, groups by business purpose, identifies tracking opportunities.
+    """
+    import asyncio
+
+    from services.site_analyzer import SiteAnalyzer
+
+    site_service = SiteService(db)
+    site = site_service.get_by_domain(domain, environment)
+    if not site:
+        raise HTTPException(status_code=404, detail=f"Site '{domain}' not found")
+
+    analyzer = SiteAnalyzer(
+        max_pages=body.max_pages,
+        crawl_depth=body.crawl_depth,
+        headless=True,
+    )
+
+    try:
+        url = f"https://{site.domain}"
+        result = asyncio.run(analyzer.analyze_site(url))
+
+        return {
+            "domain": domain,
+            "base_url": result.base_url,
+            "total_pages": result.total_pages,
+            "crawl_duration_seconds": result.crawl_duration_seconds,
+            "page_groups": result.page_groups,
+            "pages": [
+                {
+                    "url": p.url,
+                    "title": p.title,
+                    "business_purpose": p.business_purpose,
+                    "tracking_potential": p.tracking_potential,
+                    "headings": p.headings[:5],
+                    "buttons_count": len(p.buttons),
+                    "forms_count": len(p.forms),
+                }
+                for p in result.pages[:20]  # Limit response size
+            ],
+            "errors": result.errors,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Site analysis failed: {e}") from e

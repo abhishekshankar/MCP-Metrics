@@ -18,15 +18,54 @@ Automate Google Analytics 4 and Google Tag Manager setup, apply opinionated trac
 |---------|-------------|
 | **GA4 Automation** | Create properties, web data streams, optional BigQuery export |
 | **GTM Automation** | Containers, GA4 config tags, event tags, publish & snippets |
-| **Tracking Blueprints** | SaaS, ecommerce, and content presets with dataLayer specs |
+| **Tracking Blueprints** | SaaS, ecommerce, content, **Web Vitals** presets with dataLayer specs |
+| **Site Analyzer** | **Playwright-based crawling** — discover pages, group by business intent, identify tracking opportunities |
+| **GA4 Data Querying** | **Schema discovery** + natural language queries (like surendranb/google-analytics-mcp) |
 | **Consent Presets** | none, basic, and advanced consent-gated triggers |
 | **Multi-Environment** | Separate dev/stage/prod configurations |
 | **Governance** | Audit log, GTM diff, rollback |
 | **Health Monitoring** | Scheduled checks, webhook/email alerts, time-series charts |
-| **MCP Integration** | 5 tools for Claude, Gemini, and other MCP clients |
+| **MCP Integration** | **10 tools** for Claude, Gemini, and other MCP clients |
 | **Web Dashboard** | Create, monitor, and manage sites visually with charts |
 | **Security** | KMS/Secrets Manager support (AWS, GCP, Azure) |
 | **Reliability** | Automatic retry with exponential backoff for API calls |
+
+---
+
+## Competitive Landscape
+
+### How MCP Metrics Compares
+
+| Project | Stars | What They Do | What MCP Metrics Adds |
+|---------|-------|--------------|----------------------|
+| [jtrackingai/analytics-tracking-automation](https://github.com/jtrackingai/analytics-tracking-automation) | 131 | AI-powered GA4 + GTM event tracking with site analysis | **Full property/container lifecycle** + governance + health monitoring + integrated dashboard |
+| [surendranb/google-analytics-mcp](https://github.com/surendranb/google-analytics-mcp) | 222 | GA4 data querying for AI agents (read-only) | **Write/setup side** — create properties, GTM containers, blueprints via MCP |
+| [owntag/gtm-cli](https://github.com/owntag/gtm-cli) | ~50 | CLI for GTM API operations | **Full platform** — GA4 + GTM + blueprints + UI + health + governance |
+| [google-marketing-solutions/web-vitals-gtm-template](https://github.com/google-marketing-solutions/web-vitals-gtm-template) | 42 | GTM template for Core Web Vitals | **Integrated blueprint** — Web Vitals as first-class tracking preset |
+
+### Key Differentiators
+
+**vs jtrackingai/analytics-tracking-automation:**
+- We have **full GA4 property creation** (they focus on event tracking within existing properties)
+- We have **governance** (audit logs, GTM diff, rollback)
+- We have **health monitoring** with time-series charts
+- We have **integrated web dashboard** (not just CLI skill)
+- We have **consent management** and **cross-domain tracking**
+
+**vs surendranb/google-analytics-mcp:**
+- They are **read/query only** — GA4 data access for analysis
+- We are **write/setup focused** — create and configure GA4/GTM from scratch
+- **Complementary pairing:** Use MCP Metrics to set up tracking, use their server to query results
+
+**vs owntag/gtm-cli:**
+- They provide **low-level GTM API access**
+- We provide **high-level opinionated platform** — one command for full setup
+- We add **GA4 integration**, **blueprints**, **health monitoring**, **web UI**
+
+**vs Web Vitals GTM Template:**
+- They provide a **GTM template gallery entry**
+- We provide **Web Vitals as a blueprint** integrated into the full automation workflow
+- We include **attribution data** and **debugging support** in the dataLayer
 
 ---
 
@@ -184,11 +223,19 @@ Copy `config/mcp-claude.example.json` into your Claude Desktop MCP config:
 
 | Tool | Description |
 |------|-------------|
+| **Setup & Management** |
 | `create_analytics_setup` | Create GA4 + GTM setup for a new site |
 | `get_analytics_status` | Get current status of a site's analytics |
 | `apply_tracking_blueprint` | Apply a tracking blueprint to a site |
 | `describe_analytics_setup` | Get human-readable description of setup |
 | `get_health_status` | Get health status with metrics |
+| **GA4 Data & Schema** |
+| `search_ga4_schema` | Search dimensions/metrics by keyword (like surendranb/google-analytics-mcp) |
+| `list_dimension_categories` | List all GA4 dimension categories |
+| `list_metric_categories` | List all GA4 metric categories |
+| `get_dimensions_by_category` | Get dimensions organized by category |
+| `get_metrics_by_category` | Get metrics organized by category |
+| `query_ga4_data` | Query GA4 data with intelligent defaults and row estimation |
 
 ---
 
@@ -210,6 +257,7 @@ Copy `config/mcp-claude.example.json` into your Claude Desktop MCP config:
 | POST | `/sites/:domain/rollback` | Rollback |
 | GET | `/audit` | Audit log |
 | POST | `/blueprints/:name` | Save custom blueprint |
+| POST | `/sites/:domain/analyze` | **Site analyzer** — crawl and analyze site structure (Playwright) |
 
 OpenAPI docs: http://localhost:8000/docs
 

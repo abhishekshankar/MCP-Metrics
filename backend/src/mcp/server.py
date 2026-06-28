@@ -9,6 +9,7 @@ from database import SessionLocal
 from observability.logging import increment_metric
 from services.audit_service import AuditService
 from services.blueprint_service import BlueprintService
+from services.ga4_data_service import GA4DataService
 from services.health_service import HealthService
 from services.site_service import SiteService
 
@@ -146,6 +147,129 @@ def get_health_status(domain: str, environment: str = "prod") -> dict[str, Any]:
         }
     finally:
         db.close()
+
+
+# GA4 Schema Discovery Tools (like surendranb/google-analytics-mcp)
+
+@mcp.tool()
+def search_ga4_schema(keyword: str) -> dict[str, Any]:
+    """Search for GA4 dimensions and metrics matching a keyword.
+
+    Similar to surendranb/google-analytics-mcp's search_schema tool.
+    Finds dimensions and metrics by name or description.
+
+    Args:
+        keyword: Search term (e.g., "user", "conversion", "session")
+
+    Returns:
+        Matching dimensions and metrics with categories
+    """
+    service = GA4DataService()
+    result = service.search_schema(keyword)
+    _log_mcp("search_ga4_schema", None, {"keyword": keyword, "results": len(result["dimensions"]) + len(result["metrics"])})
+    return result
+
+
+@mcp.tool()
+def list_dimension_categories() -> dict[str, Any]:
+    """List all available GA4 dimension categories."""
+    service = GA4DataService()
+    categories = service.list_dimension_categories()
+    return {"categories": categories}
+
+
+@mcp.tool()
+def list_metric_categories() -> dict[str, Any]:
+    """List all available GA4 metric categories."""
+    service = GA4DataService()
+    categories = service.list_metric_categories()
+    return {"categories": categories}
+
+
+@mcp.tool()
+def get_dimensions_by_category(category: str | None = None) -> dict[str, Any]:
+    """Get dimensions organized by category.
+
+    Args:
+        category: Optional category to filter (e.g., "Time", "Geography", "Event")
+
+    Returns:
+        Dimensions grouped by category
+    """
+    service = GA4DataService()
+    return service.get_dimensions_by_category(category)
+
+
+@mcp.tool()
+def get_metrics_by_category(category: str | None = None) -> dict[str, Any]:
+    """Get metrics organized by category.
+
+    Args:
+        category: Optional category to filter (e.g., "User", "Session", "Conversions")
+
+    Returns:
+        Metrics grouped by category
+    """
+    service = GA4DataService()
+    return service.get_metrics_by_category(category)
+
+
+@mcp.tool()
+def query_ga4_data(
+    property_id: str,
+    dimensions: list[str],
+    metrics: list[str],
+    start_date: str,
+    end_date: str,
+    limit: int = 1000,
+    estimate_only: bool = False,
+) -> dict[str, Any]:
+    """Query GA4 data with intelligent defaults and safety features.
+
+    Similar to surendranb/google-analytics-mcp's get_ga4_data tool.
+    Includes row estimation and safe defaults to prevent context window overflow.
+
+    Args:
+        property_id: GA4 property ID (e.g., "properties/123456789")
+        dimensions: List of dimension names (use search_ga4_schema to find valid names)
+        metrics: List of metric names
+        start_date: Start date (YYYY-MM-DD)
+        end_date: End date (YYYY-MM-DD)
+        limit: Maximum rows (default 1000, max 10000)
+        estimate_only: If True, only returns row count estimate
+
+    Returns:
+        Query results with metadata, or row estimate if estimate_only=True
+
+    Example:
+        query_ga4_data(
+            property_id="properties/123456789",
+            dimensions=["date", "country"],
+            metrics=["activeUsers", "sessions"],
+            start_date="2024-01-01",
+            end_date="2024-01-31"
+        )
+    """
+    service = GA4DataService()
+    result = service.query_data(
+        property_id=property_id,
+        dimensions=dimensions,
+        metrics=metrics,
+        date_range={"start": start_date, "end": end_date},
+        limit=min(limit, 10000),
+        estimate_only=estimate_only,
+    )
+    _log_mcp(
+        "query_ga4_data",
+        None,
+        {
+            "property_id": property_id,
+            "dimensions": dimensions,
+            "metrics": metrics,
+            "estimate_only": estimate_only,
+        },
+    )
+    return result
 
 
 if __name__ == "__main__":
