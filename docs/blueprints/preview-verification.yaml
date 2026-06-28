@@ -1,0 +1,118 @@
+name: preview-verification
+description: GTM Preview mode verification workflow for testing tag firing before publishing
+description_long: |
+  Uses Playwright to open GTM Preview mode, navigate to pages, and verify that tags fire correctly.
+  Similar to jtrackingai/analytics-tracking-automation's preview verification feature.
+  
+  Steps:
+  1. Build preview URL with GTM container ID and preview ID
+  2. Open browser in headless mode
+  3. Navigate through key pages
+  4. Collect dataLayer events
+  5. Verify expected tags fired
+  6. Report results before publishing
+version: "1.0"
+category: verification
+
+# Preview verification configuration
+verification_steps:
+  - name: setup_preview
+    action: build_preview_url
+    description: "Construct URL with gtm_preview and gtm_debug parameters"
+    
+  - name: load_page
+    action: navigate
+    description: "Load page in headless browser with preview mode"
+    timeout: 10000
+    
+  - name: collect_data_layer
+    action: evaluate
+    description: "Extract all dataLayer events from page"
+    
+  - name: check_tag_firing
+    action: verify
+    description: "Check that expected tags fired for each event"
+    
+  - name: report_results
+    action: output
+    description: "Generate verification report with pass/fail status"
+
+# Expected tags to verify (customize per site)
+expected_tags:
+  - name: "GA4 Configuration"
+    event: "gtm.js"
+    required: true
+    description: "Base GA4 configuration tag must fire on all pages"
+    
+  - name: "GA4 Event - page_view"
+    event: "page_view"
+    required: true
+    description: "Page view event for basic analytics"
+    
+  - name: "GA4 Event - user_engagement"
+    event: "user_engagement"
+    required: false
+    description: "Engagement event if configured"
+
+# Test pages to verify (customize per site)
+test_pages:
+  - path: /
+    description: "Homepage"
+    required_tags: ["GA4 Configuration", "page_view"]
+    
+  - path: /about
+    description: "About page"
+    required_tags: ["page_view"]
+    
+  - path: /contact
+    description: "Contact page"
+    required_tags: ["page_view"]
+    interactions:
+      - type: click
+        selector: "button[type='submit']"
+        delay_after: 2000
+
+# Success criteria
+success_criteria:
+  min_tag_firing_rate: 1.0  # 100% of required tags must fire
+  max_error_rate: 0.0      # 0 errors allowed for required tags
+  data_layer_present: true # dataLayer must exist
+
+# Output format
+output_format:
+  summary:
+    - total_pages_tested
+    - total_tags_checked
+    - tags_fired_count
+    - tags_missed_count
+    - success_rate
+    
+  details:
+    - page_url
+    - tags_checked:
+        - tag_name
+        - fired: true/false
+        - firing_count
+        - errors: []
+    - data_layer_events: []
+    - screenshots: []  # Optional
+
+# CLI/API usage examples
+examples:
+  cli: |
+    analytics-mcp verify-preview \
+      --domain example.com \
+      --container-id GTM-XXXXXX \
+      --preview-id ENV-1 \
+      --blueprint saas
+      
+  api: |
+    POST /sites/example.com/verify-preview
+    {
+      "container_id": "GTM-XXXXXX",
+      "preview_id": "ENV-1",
+      "test_pages": ["/", "/pricing"]
+    }
+    
+  mcp: |
+    Use the verify_gtm_preview MCP tool to check tag firing

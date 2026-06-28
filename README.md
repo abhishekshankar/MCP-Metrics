@@ -236,6 +236,9 @@ Copy `config/mcp-claude.example.json` into your Claude Desktop MCP config:
 | `get_dimensions_by_category` | Get dimensions organized by category |
 | `get_metrics_by_category` | Get metrics organized by category |
 | `query_ga4_data` | Query GA4 data with intelligent defaults and row estimation |
+| **Verification & Analysis** |
+| `verify_gtm_preview` | Test GTM Preview mode — verify tags fire before publishing |
+| `analyze_site_structure` | Crawl site to discover pages and tracking opportunities |
 
 ---
 
@@ -258,6 +261,7 @@ Copy `config/mcp-claude.example.json` into your Claude Desktop MCP config:
 | GET | `/audit` | Audit log |
 | POST | `/blueprints/:name` | Save custom blueprint |
 | POST | `/sites/:domain/analyze` | **Site analyzer** — crawl and analyze site structure (Playwright) |
+| POST | `/sites/:domain/verify-preview` | **Preview verification** — test GTM tags before publishing |
 
 OpenAPI docs: http://localhost:8000/docs
 
@@ -341,6 +345,9 @@ AZURE_SECRET_NAME=google-credentials
 ```bash
 # Install dependencies
 pip install -e ".[dev]"
+
+# Install Playwright browsers (required for site analyzer and preview verification)
+playwright install chromium
 
 # Run tests
 MOCK_GOOGLE_APIS=true pytest backend/tests -v

@@ -272,5 +272,144 @@ def query_ga4_data(
     return result
 
 
+@mcp.tool()
+def verify_gtm_preview(
+    domain: str,
+    container_id: str,
+    preview_id: str,
+    environment: str = "prod",
+    test_pages: list[str] | None = None,
+) -> dict[str, Any]:
+    """Verify GTM Preview mode — check that tags fire correctly before publishing.
+
+    Similar to jtrackingai/analytics-tracking-automation's preview verification.
+    Opens GTM Preview mode in a headless browser and verifies tag firing.
+
+    Args:
+        domain: Site domain to test
+        container_id: GTM container ID (e.g., "GTM-XXXXXX")
+        preview_id: GTM Preview mode ID (from GTM UI "Preview" button)
+        environment: Site environment (default "prod")
+        test_pages: List of paths to test (default ["/"])
+
+    Returns:
+        Verification results with tag firing status and recommendations
+
+    Example:
+        verify_gtm_preview(
+            domain="example.com",
+            container_id="GTM-ABC123",
+            preview_id="ENV-1",
+            test_pages=["/", "/pricing"]
+        )
+    """
+    import asyncio
+
+    from services.preview_service import PreviewService
+    from services.site_service import SiteService
+
+    db = _get_db()
+    try:
+        site_service = SiteService(db)
+        site = site_service.get_by_domain(domain, environment)
+        if not site:
+            return {"error": f"Site '{domain}' not found"}
+
+        service = PreviewService(headless=True)
+        pages = test_pages or ["/"]
+        results = []
+
+        for path in pages:
+            url = f"https://{domain}{path}"
+            result = asyncio.run(
+                service.verify_preview(
+                    url=url,
+                    container_id=container_id,
+                    preview_id=preview_id,
+                )
+            )
+            results.append(
+                {
+                    "url": result.url,
+                    "success": result.success,
+                    "tags_fired": len([r for r in result.tag_results if r.fired]),
+                    "tags_total": len(result.tag_results),
+                    "duration_seconds": result.duration_seconds,
+                }
+            )
+
+        all_success = all(r["success"] for r in results)
+
+        _log_mcp("verify_gtm_preview", domain, {"container_id": container_id, "pages": len(results)})
+
+        return {
+            "domain": domain,
+            "container_id": container_id,
+            "overall_success": all_success,
+            "pages_tested": len(results),
+            "results": results,
+            "recommendation": (
+                "Proceed with publishing" if all_success else "Review failed tags before publishing"
+            ),
+        }
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def analyze_site_structure(
+    domain: str,
+    environment: str = "prod",
+    max_pages: int = 50,
+) -> dict[str, Any]:
+    """Analyze website structure with Playwright crawler.
+
+    Similar to jtrackingai/analytics-tracking-automation's site analysis.
+    Discovers pages, groups by business purpose, identifies tracking opportunities.
+
+    Args:
+        domain: Site domain to analyze
+        environment: Site environment (default "prod")
+        max_pages: Maximum pages to crawl (default 50)
+
+    Returns:
+        Site analysis with page groups and tracking recommendations
+
+    Example:
+        analyze_site_structure(domain="example.com", max_pages=30)
+    """
+    import asyncio
+
+    from services.site_analyzer import SiteAnalyzer
+    from services.site_service import SiteService
+
+    db = _get_db()
+    try:
+        site_service = SiteService(db)
+        site = site_service.get_by_domain(domain, environment)
+        if not site:
+            return {"error": f"Site '{domain}' not found"}
+
+        analyzer = SiteAnalyzer(max_pages=max_pages, headless=True)
+        url = f"https://{domain}"
+        result = asyncio.run(analyzer.analyze_site(url))
+
+        _log_mcp("analyze_site_structure", domain, {"pages": result.total_pages})
+
+        return {
+            "domain": domain,
+            "base_url": result.base_url,
+            "total_pages": result.total_pages,
+            "crawl_duration_seconds": result.crawl_duration_seconds,
+            "page_groups": result.page_groups,
+            "tracking_recommendations": {
+                purpose: f"Apply '{purpose}' tracking blueprint"
+                for purpose in result.page_groups.keys()
+            },
+        }
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     mcp.run()

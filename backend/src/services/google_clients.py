@@ -169,12 +169,15 @@ def get_ga4_client():
     settings = get_settings()
     if settings.mock_google_apis:
         return MockGA4Client()
-    # Real client would use googleapiclient.discovery.build
-    return MockGA4Client()
+    # Use real client when not in mock mode
+    from services.google_clients_real import RealGA4AdminClient
+    return RealGA4AdminClient()
 
 
 def get_gtm_client():
     settings = get_settings()
     if settings.mock_google_apis:
         return MockGTMClient()
-    return MockGTMClient()
+    # Use real client when not in mock mode
+    from services.google_clients_real import RealGTMClient
+    return RealGTMClient()

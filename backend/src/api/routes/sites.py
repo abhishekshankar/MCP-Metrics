@@ -1,5 +1,7 @@
 """Site API routes."""
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -317,3 +319,88 @@ def analyze_site(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Site analysis failed: {e}") from e
+
+
+class PreviewVerificationRequest(BaseModel):
+    container_id: str
+    preview_id: str
+    test_pages: list[str] | None = None
+    expected_tags: list[dict[str, Any]] | None = None
+
+
+@router.post("/{domain}/verify-preview")
+def verify_preview(
+    domain: str,
+    body: PreviewVerificationRequest,
+    environment: str = Query("prod"),
+    db: Session = Depends(get_db),
+    role: str = Depends(require_admin),
+):
+    """Verify GTM Preview mode — check that tags fire correctly before publishing.
+
+    Similar to jtrackingai/analytics-tracking-automation's preview verification.
+    Opens GTM Preview mode in headless browser and verifies tag firing.
+    """
+    import asyncio
+
+    from services.preview_service import PreviewService
+
+    site_service = SiteService(db)
+    site = site_service.get_by_domain(domain, environment)
+    if not site:
+        raise HTTPException(status_code=404, detail=f"Site '{domain}' not found")
+
+    if not site.gtm_container_id:
+        raise HTTPException(status_code=400, detail="Site has no GTM container configured")
+
+    service = PreviewService(headless=True)
+
+    try:
+        # Test homepage by default, or specified pages
+        test_pages = body.test_pages or ["/"]
+        results = []
+
+        for path in test_pages:
+            url = f"https://{site.domain}{path}"
+            result = asyncio.run(
+                service.verify_preview(
+                    url=url,
+                    container_id=body.container_id,
+                    preview_id=body.preview_id,
+                    expected_tags=body.expected_tags,
+                )
+            )
+            results.append(
+                {
+                    "url": result.url,
+                    "success": result.success,
+                    "tag_results": [
+                        {
+                            "tag_name": r.tag_name,
+                            "event_name": r.event_name,
+                            "fired": r.fired,
+                            "firing_count": r.firing_count,
+                            "errors": r.errors,
+                        }
+                        for r in result.tag_results
+                    ],
+                    "data_layer_events": result.data_layer_events[:20],  # Limit
+                    "duration_seconds": result.duration_seconds,
+                    "errors": result.errors,
+                }
+            )
+
+        all_success = all(r["success"] for r in results)
+
+        return {
+            "domain": domain,
+            "container_id": body.container_id,
+            "preview_id": body.preview_id,
+            "overall_success": all_success,
+            "pages_tested": len(results),
+            "results": results,
+            "recommendation": "Proceed with publishing" if all_success else "Review failed tags before publishing",
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preview verification failed: {e}") from e
