@@ -1,0 +1,16 @@
+name: wordpress
+description: WordPress GTM plugin snippet
+framework: wordpress
+snippet_template: |
+  // Add to functions.php or use a header/footer plugin
+  function analytics_mcp_gtm_head() {
+    ?>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','{{GTM_ID}}');</script>
+    <?php
+  }
+  add_action('wp_head', 'analytics_mcp_gtm_head');

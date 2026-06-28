@@ -1,0 +1,118 @@
+name: ecommerce
+description: Ecommerce tracking blueprint with GA4 recommended events
+version: "1.0"
+events:
+  - name: view_item
+    trigger_type: customEvent
+    trigger_config:
+      name: View Item
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: view_item
+    parameters: [item_id, item_name, item_category, value, currency]
+  - name: select_item
+    trigger_type: customEvent
+    trigger_config:
+      name: Select Item
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: select_item
+    parameters: [item_id, item_name, item_category]
+  - name: add_to_cart
+    trigger_type: customEvent
+    trigger_config:
+      name: Add to Cart
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: add_to_cart
+    parameters: [item_id, item_name, value, currency]
+  - name: begin_checkout
+    trigger_type: customEvent
+    trigger_config:
+      name: Begin Checkout
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: begin_checkout
+    parameters: [value, currency]
+  - name: add_payment_info
+    trigger_type: customEvent
+    trigger_config:
+      name: Add Payment Info
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: add_payment_info
+    parameters: [value, currency]
+  - name: purchase
+    trigger_type: customEvent
+    trigger_config:
+      name: Purchase
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: purchase
+    parameters: [item_id, item_name, value, currency]
+  - name: refund
+    trigger_type: customEvent
+    trigger_config:
+      name: Refund
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: refund
+    parameters: [item_id, value, currency]
+dataLayer:
+  helper_snippet: |
+    window.dataLayer = window.dataLayer || [];
+    function trackEcommerce(event, items, params) {
+      dataLayer.push(Object.assign({ event: event, ecommerce: { items: items } }, params || {}));
+    }
+  spec:
+    view_item: { item_id: "string", item_name: "string", item_category: "string", value: "number", currency: "string" }
+    purchase: { item_id: "string", item_name: "string", value: "number", currency: "string" }

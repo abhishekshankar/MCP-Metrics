@@ -1,0 +1,83 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+a { color: #38bdf8; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 220px;
+  background: #1e293b;
+  padding: 1.5rem;
+  border-right: 1px solid #334155;
+}
+.sidebar h1 { font-size: 1.1rem; margin-bottom: 1.5rem; color: #38bdf8; }
+.sidebar nav a {
+  display: block;
+  padding: 0.5rem 0;
+  color: #94a3b8;
+}
+.sidebar nav a.active { color: #f1f5f9; font-weight: 600; }
+.main { flex: 1; padding: 2rem; max-width: 1200px; }
+.card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+.card h2 { font-size: 1rem; margin-bottom: 1rem; color: #94a3b8; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.75rem; border-bottom: 1px solid #334155; }
+th { color: #64748b; font-size: 0.85rem; }
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-healthy { background: #065f46; color: #6ee7b7; }
+.badge-warning { background: #78350f; color: #fcd34d; }
+.badge-critical { background: #7f1d1d; color: #fca5a5; }
+.badge-active { background: #1e3a5f; color: #7dd3fc; }
+form label { display: block; margin-bottom: 0.25rem; color: #94a3b8; font-size: 0.85rem; }
+form input, form select, form textarea {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #e2e8f0;
+}
+button, .btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+button:hover { background: #1d4ed8; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.error { color: #f87171; margin-top: 0.5rem; }
+.success { color: #4ade80; margin-top: 0.5rem; }
+.progress { color: #38bdf8; margin: 1rem 0; }
+pre {
+  background: #0f172a;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  border: 1px solid #334155;
+}
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+.stat { background: #0f172a; padding: 1rem; border-radius: 4px; }
+.stat-value { font-size: 1.5rem; font-weight: 700; }
+.stat-label { font-size: 0.75rem; color: #64748b; }

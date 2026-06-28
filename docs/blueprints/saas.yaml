@@ -1,0 +1,110 @@
+name: saas
+description: SaaS / product site tracking blueprint
+version: "1.0"
+events:
+  - name: page_view
+    trigger_type: pageview
+    parameters: []
+  - name: signup_started
+    trigger_type: customEvent
+    trigger_config:
+      name: Signup Started
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: signup_started
+    parameters: [source, campaign]
+  - name: signup_completed
+    trigger_type: customEvent
+    trigger_config:
+      name: Signup Completed
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: signup_completed
+    parameters: [plan_name, source]
+  - name: cta_click
+    trigger_type: click
+    trigger_config:
+      name: CTA Click
+      type: click
+      filter:
+        - type: contains
+          parameter:
+            - type: template
+              key: arg0
+              value: "{{Click Classes}}"
+            - type: template
+              key: arg1
+              value: cta
+    parameters: [source, campaign]
+  - name: pricing_view
+    trigger_type: pageview
+    trigger_config:
+      name: Pricing View
+      type: pageview
+      filter:
+        - type: contains
+          parameter:
+            - type: template
+              key: arg0
+              value: "{{Page Path}}"
+            - type: template
+              key: arg1
+              value: /pricing
+    parameters: [plan_name]
+  - name: login
+    trigger_type: customEvent
+    trigger_config:
+      name: Login
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: login
+    parameters: [user_role]
+  - name: trial_started
+    trigger_type: customEvent
+    trigger_config:
+      name: Trial Started
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: trial_started
+    parameters: [plan_name, source]
+dataLayer:
+  helper_snippet: |
+    window.dataLayer = window.dataLayer || [];
+    function trackEvent(event, params) {
+      dataLayer.push(Object.assign({ event: event }, params || {}));
+    }
+  spec:
+    signup_started: { source: "string", campaign: "string" }
+    signup_completed: { plan_name: "string", source: "string" }
+    cta_click: { source: "string", campaign: "string" }
+    pricing_view: { plan_name: "string" }
+    login: { user_role: "string" }
+    trial_started: { plan_name: "string", source: "string" }

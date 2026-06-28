@@ -1,0 +1,78 @@
+name: content
+description: Content / blog / publisher tracking blueprint
+version: "1.0"
+events:
+  - name: page_view
+    trigger_type: pageview
+    parameters: [article_id, category]
+  - name: scroll_depth
+    trigger_type: customEvent
+    trigger_config:
+      name: Scroll Depth
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: scroll_depth
+    parameters: [scroll_percent, article_id]
+  - name: article_read
+    trigger_type: customEvent
+    trigger_config:
+      name: Article Read
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: article_read
+    parameters: [article_id, category, engaged_time]
+  - name: video_play
+    trigger_type: customEvent
+    trigger_config:
+      name: Video Play
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: video_play
+    parameters: [article_id, category]
+  - name: newsletter_subscribe
+    trigger_type: customEvent
+    trigger_config:
+      name: Newsletter Subscribe
+      type: customEvent
+      customEventFilter:
+        - type: equals
+          parameter:
+            - type: template
+              key: arg0
+              value: event
+            - type: template
+              key: arg1
+              value: newsletter_subscribe
+    parameters: [source]
+dataLayer:
+  helper_snippet: |
+    window.dataLayer = window.dataLayer || [];
+    function trackContent(event, params) {
+      dataLayer.push(Object.assign({ event: event }, params || {}));
+    }
+  spec:
+    scroll_depth: { scroll_percent: "number", article_id: "string" }
+    article_read: { article_id: "string", category: "string", engaged_time: "number" }
+    video_play: { article_id: "string", category: "string" }
+    newsletter_subscribe: { source: "string" }

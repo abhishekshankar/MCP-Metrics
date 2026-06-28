@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "analytics-mcp": {
+      "command": "python",
+      "args": ["-m", "backend.src.mcp.server"],
+      "env": {
+        "DATABASE_URL": "postgresql://analytics:analytics@localhost:5432/analytics_mcp",
+        "MOCK_GOOGLE_APIS": "true",
+        "PYTHONPATH": "backend/src"
+      }
+    }
+  }
+}
