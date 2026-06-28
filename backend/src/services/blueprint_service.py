@@ -160,3 +160,27 @@ class BlueprintService:
             "version": bp_version.version_number,
             "gtm_version_id": publish_result["version"]["containerVersionId"],
         }
+
+    def save_custom(self, name: str, content: dict[str, Any]) -> Path:
+        """Save a custom blueprint to the blueprints directory.
+
+        Creates the blueprints directory if it doesn't exist.
+        Validates the content before saving.
+        """
+        # Validate the blueprint content
+        blueprint = Blueprint.model_validate(content)
+        self.validate(blueprint)
+
+        # Ensure the blueprints directory exists
+        blueprints_dir = self.settings.blueprints_path
+        blueprints_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save the blueprint
+        path = blueprints_dir / f"{name}.yaml"
+        with open(path, "w") as f:
+            yaml.dump(content, f, default_flow_style=False, sort_keys=False)
+
+        # Clear cache to ensure the new blueprint is loaded
+        self._cache.pop(name, None)
+
+        return path

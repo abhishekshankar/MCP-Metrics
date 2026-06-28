@@ -202,3 +202,58 @@ def gtm_diff(
         raise HTTPException(status_code=404, detail="Site or GTM container not found")
     governance = GovernanceService(db)
     return governance.diff_gtm(before, after, site.gtm_container_id)
+
+
+@router.get("/{domain}/versions")
+def site_versions(
+    domain: str,
+    environment: str = Query("prod"),
+    db: Session = Depends(get_db),
+    role: str = Depends(require_read),
+):
+    """Get blueprint version history for a site."""
+    site_service = SiteService(db)
+    site = site_service.get_by_domain(domain, environment)
+    if not site:
+        raise HTTPException(status_code=404, detail=f"Site '{domain}' not found")
+    governance = GovernanceService(db)
+    versions = governance.get_version_history(site.id)
+    return {
+        "versions": [
+            {
+                "number": v.version_number,
+                "blueprint_name": v.blueprint_name,
+                "gtm_version_id": v.gtm_version_id,
+                "created_at": v.created_at.isoformat(),
+            }
+            for v in versions
+        ]
+    }
+
+
+@router.get("/{domain}/health/history")
+def health_history(
+    domain: str,
+    limit: int = Query(30, le=100),
+    environment: str = Query("prod"),
+    db: Session = Depends(get_db),
+    role: str = Depends(require_read),
+):
+    """Get health check history for a site."""
+    site_service = SiteService(db)
+    site = site_service.get_by_domain(domain, environment)
+    if not site:
+        raise HTTPException(status_code=404, detail=f"Site '{domain}' not found")
+    health = HealthService(db)
+    history = health.get_history(site.id, limit)
+    return [
+        {
+            "timestamp": h.checked_at.isoformat(),
+            "event_count": h.event_count_24h,
+            "sessions": h.traffic_sessions_24h,
+            "conversions": h.conversion_count_24h,
+            "status": h.status,
+            "anomaly_flags": h.anomaly_flags,
+        }
+        for h in history
+    ]

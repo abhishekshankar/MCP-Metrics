@@ -1,4 +1,4 @@
-"""GTM automation service."""
+"""GTM automation service with retry support."""
 
 from typing import Any
 
@@ -9,6 +9,7 @@ from config import get_settings
 from models.site import Site
 from services.audit_service import AuditService
 from services.google_clients import get_gtm_client
+from services.retry_client import retry_with_backoff
 
 
 class GTMService:
@@ -20,6 +21,7 @@ class GTMService:
         self.settings = get_settings()
         self.account_id = self.settings.gtm_account_id
 
+    @retry_with_backoff()
     def create_container(
         self,
         name: str,
@@ -55,6 +57,7 @@ class GTMService:
         )
         return existing
 
+    @retry_with_backoff()
     def create_workspace(
         self,
         container_id: str,
@@ -75,6 +78,7 @@ class GTMService:
         )
         return workspace
 
+    @retry_with_backoff()
     def create_ga4_config_tag(
         self,
         container_id: str,
@@ -147,6 +151,7 @@ class GTMService:
         )
         return tag
 
+    @retry_with_backoff()
     def create_event_tag(
         self,
         container_id: str,
@@ -194,6 +199,7 @@ class GTMService:
         )
         return {"tag": tag, "trigger": trigger}
 
+    @retry_with_backoff()
     def save_and_publish(
         self,
         container_id: str,

@@ -1,4 +1,4 @@
-"""Google Cloud authentication provider with token refresh."""
+"""Google Cloud authentication provider with token refresh and KMS integration."""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 
 from config import Settings, get_settings
+from observability.logging import logger
+from services.secrets_manager import CredentialsManager
 
 
 class GoogleAuthError(Exception):
@@ -34,7 +36,14 @@ _MOCK_SERVICE_ACCOUNT = {
 
 
 class GoogleAuthProvider:
-    """Load service account credentials and provide refreshed access tokens."""
+    """Load service account credentials and provide refreshed access tokens.
+
+    Supports multiple credential sources in priority order:
+    1. KMS/Secrets Manager (AWS, GCP, Azure) if configured
+    2. Environment variable (inline JSON)
+    3. File path from environment variable
+    4. Mock credentials (if MOCK_GOOGLE_APIS=true)
+    """
 
     def __init__(
         self,
@@ -59,23 +68,34 @@ class GoogleAuthProvider:
             self._credentials.refresh(Request())
             return self._credentials
 
-        creds_data = self._load_credentials_json()
+        # Try KMS/Secrets Manager first if configured
+        creds_data = self._load_from_kms()
         if creds_data:
             self._credentials = service_account.Credentials.from_service_account_info(
                 creds_data, scopes=self.scopes
             )
+            logger.info("credentials.loaded", source="kms/secrets_manager")
+        elif self._load_credentials_json():
+            creds_data = self._load_credentials_json()
+            self._credentials = service_account.Credentials.from_service_account_info(
+                creds_data, scopes=self.scopes  # type: ignore
+            )
+            logger.info("credentials.loaded", source="environment_json")
         elif self.credentials_path and Path(self.credentials_path).is_file():
             self._credentials = service_account.Credentials.from_service_account_file(
                 self.credentials_path, scopes=self.scopes
             )
+            logger.info("credentials.loaded", source="file", path=self.credentials_path)
         elif self._settings.mock_google_apis:
             self._credentials = service_account.Credentials.from_service_account_info(
                 _MOCK_SERVICE_ACCOUNT, scopes=self.scopes
             )
+            logger.info("credentials.loaded", source="mock")
         else:
             raise GoogleAuthError(
-                "Google credentials not configured. Set GOOGLE_APPLICATION_CREDENTIALS "
-                "or GOOGLE_SERVICE_ACCOUNT_JSON."
+                "Google credentials not configured. Set GOOGLE_APPLICATION_CREDENTIALS, "
+                "GOOGLE_SERVICE_ACCOUNT_JSON, or configure KMS_PROVIDER with AWS_SECRET_NAME, "
+                "GCP_KMS_KEY_ID, or AZURE_SECRET_NAME."
             )
 
         return self._credentials
@@ -105,3 +125,11 @@ class GoogleAuthProvider:
             except json.JSONDecodeError as exc:
                 raise GoogleAuthError("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON") from exc
         return None
+
+    def _load_from_kms(self) -> dict | None:
+        """Load credentials from configured KMS/Secrets Manager."""
+        try:
+            return CredentialsManager.get_google_credentials()
+        except Exception as e:
+            logger.warning("credentials.kms_load_failed", error=str(e))
+            return None

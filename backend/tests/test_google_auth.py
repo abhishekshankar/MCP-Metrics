@@ -29,6 +29,7 @@ def test_load_credentials_from_json_env(monkeypatch, google_service_account_info
     monkeypatch.setenv("GOOGLE_SERVICE_ACCOUNT_JSON", json.dumps(google_service_account_info))
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     monkeypatch.setenv("MOCK_GOOGLE_APIS", "false")
+    monkeypatch.delenv("KMS_PROVIDER", raising=False)
     get_settings = __import__("config", fromlist=["get_settings"]).get_settings
     get_settings.cache_clear()
 
@@ -53,27 +54,30 @@ def test_load_credentials_from_file_env(monkeypatch, google_service_account_info
     monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", str(creds_file))
     monkeypatch.delenv("GOOGLE_SERVICE_ACCOUNT_JSON", raising=False)
     monkeypatch.setenv("MOCK_GOOGLE_APIS", "false")
+    monkeypatch.delenv("KMS_PROVIDER", raising=False)  # Ensure KMS is not used
     get_settings = __import__("config", fromlist=["get_settings"]).get_settings
     get_settings.cache_clear()
 
+    # Now the code reads the file and calls from_service_account_info with parsed JSON
     with patch(
-        "services.google_auth.service_account.Credentials.from_service_account_file"
-    ) as mock_from_file:
+        "services.google_auth.service_account.Credentials.from_service_account_info"
+    ) as mock_from_info:
         mock_credentials = MagicMock()
         mock_credentials.valid = True
-        mock_from_file.return_value = mock_credentials
+        mock_from_info.return_value = mock_credentials
 
         provider = GoogleAuthProvider()
         credentials = provider.load_credentials()
 
         assert credentials is mock_credentials
-        mock_from_file.assert_called_once_with(str(creds_file), scopes=provider.scopes)
+        mock_from_info.assert_called_once()
 
 
 def test_missing_credentials_raises_when_mock_disabled(monkeypatch) -> None:
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     monkeypatch.delenv("GOOGLE_SERVICE_ACCOUNT_JSON", raising=False)
     monkeypatch.setenv("MOCK_GOOGLE_APIS", "false")
+    monkeypatch.delenv("KMS_PROVIDER", raising=False)
     get_settings = __import__("config", fromlist=["get_settings"]).get_settings
     get_settings.cache_clear()
 
@@ -107,6 +111,7 @@ def test_refresh_if_needed_refreshes_invalid_credentials(
 ) -> None:
     monkeypatch.setenv("GOOGLE_SERVICE_ACCOUNT_JSON", json.dumps(google_service_account_info))
     monkeypatch.setenv("MOCK_GOOGLE_APIS", "false")
+    monkeypatch.delenv("KMS_PROVIDER", raising=False)
     get_settings = __import__("config", fromlist=["get_settings"]).get_settings
     get_settings.cache_clear()
 

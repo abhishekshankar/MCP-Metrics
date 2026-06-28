@@ -1,4 +1,4 @@
-"""GA4 automation service."""
+"""GA4 automation service with retry support."""
 
 from typing import Any
 
@@ -9,6 +9,7 @@ from config import get_settings
 from models.site import Site
 from services.audit_service import AuditService
 from services.google_clients import get_ga4_client
+from services.retry_client import retry_with_backoff
 
 
 class GA4Service:
@@ -19,6 +20,7 @@ class GA4Service:
         self.audit = AuditService(db)
         self.settings = get_settings()
 
+    @retry_with_backoff()
     def create_property(
         self,
         name: str,
@@ -67,6 +69,7 @@ class GA4Service:
             )
             raise RuntimeError(f"Failed to create GA4 property '{property_name}': {e}") from e
 
+    @retry_with_backoff()
     def create_web_data_stream(
         self,
         property_id: str,
@@ -117,6 +120,7 @@ class GA4Service:
             )
             raise RuntimeError(f"Failed to create web data stream for {domain}: {e}") from e
 
+    @retry_with_backoff()
     def enable_bigquery_export(
         self,
         property_id: str,
@@ -146,6 +150,7 @@ class GA4Service:
         except Exception as e:
             raise RuntimeError(f"Failed to enable BigQuery export: {e}") from e
 
+    @retry_with_backoff()
     def run_health_report(self, property_id: str) -> dict[str, Any]:
         return self.client.run_report(property_id)
 

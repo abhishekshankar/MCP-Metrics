@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, Site, HealthResult, AuditLog } from '../api'
+import HealthCharts from './HealthCharts'
+import GTMDiff from './GTMDiff'
 
 export default function SiteDetail() {
   const { domain } = useParams<{ domain: string }>()
@@ -76,6 +78,10 @@ export default function SiteDetail() {
           <p style={{ marginTop: '0.5rem', color: '#94a3b8' }}>{String(describe.consent_explanation)}</p>
         </div>
       )}
+
+      {domain && <HealthCharts domain={domain} />}
+
+      {domain && <GTMDiff domain={domain} />}
 
       <div className="card">
         <h2>Recent Audit Log</h2>

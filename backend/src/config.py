@@ -37,6 +37,19 @@ class Settings(BaseSettings):
     health_check_interval_minutes: int = 60
     plugin_blueprints_dir: str | None = None
 
+    # Retry configuration for Google API calls
+    api_retry_attempts: int = 3
+    api_retry_backoff_base: float = 1.0  # seconds
+    api_retry_max_wait: float = 30.0  # seconds
+
+    # KMS/Secrets Manager configuration
+    kms_provider: str | None = None  # "aws", "gcp", "azure", or None for env-only
+    aws_region: str = "us-east-1"
+    aws_secret_name: str | None = None
+    gcp_kms_key_id: str | None = None
+    azure_key_vault_url: str | None = None
+    azure_secret_name: str | None = None
+
     @property
     def scope_list(self) -> list[str]:
         return [s.strip() for s in self.google_scopes.split(",") if s.strip()]
