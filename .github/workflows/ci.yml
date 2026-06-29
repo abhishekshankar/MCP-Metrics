@@ -58,5 +58,5 @@ jobs:
       - name: Type check Web UI
         run: |
           cd web-ui
-          npm ci
+          npm install
           npx tsc --noEmit
