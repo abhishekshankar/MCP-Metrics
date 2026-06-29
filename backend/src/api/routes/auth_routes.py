@@ -1,8 +1,8 @@
 """Auth management API routes."""
 
+from api.auth import require_admin
 from fastapi import APIRouter, Depends
 
-from api.auth import require_admin
 from config import get_settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])

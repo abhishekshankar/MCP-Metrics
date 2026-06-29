@@ -8,7 +8,32 @@
 
 Automate Google Analytics 4 and Google Tag Manager setup, apply opinionated tracking blueprints, monitor health, and manage everything via CLI, REST API, MCP tools, or Web UI.
 
-**[Features](#features)** • **[Quickstart](#quickstart)** • **[Screenshots](#screenshots)** • **[CLI](#cli-commands)** • **[MCP](#mcp-client-setup)** • **[API](#rest-api)**
+**[Try It Now](#try-it-now)** • **[Features](#features)** • **[Quickstart](#quickstart)** • **[Screenshots](#screenshots)** • **[CLI](#cli-commands)** • **[MCP](#mcp-client-setup)** • **[API](#rest-api)**
+
+---
+
+## Try It Now (60 Seconds)
+
+No Google account. No API keys. No setup. Just Docker.
+
+```bash
+# 1. Clone
+git clone https://github.com/abhishekshankar/MCP-Metrics.git
+cd MCP-Metrics
+
+# 2. Run demo (creates .env automatically, starts everything)
+./demo.sh
+
+# 3. Open http://localhost:5173 → Click "Create Setup" → Done!
+```
+
+**What you'll see:**
+- Web UI with fake GA4 property creation (G-XXXXXXXXXX)
+- Analytics audit tool (check any website)
+- Tracking blueprints (SaaS, Ecommerce, Web Vitals)
+- Real-time audit log
+
+Runs in **mock mode** — simulates Google APIs. Perfect for demo/development.
 
 ---
 
@@ -71,51 +96,55 @@ Automate Google Analytics 4 and Google Tag Manager setup, apply opinionated trac
 
 ## Quickstart
 
-### Prerequisites
-
-- Docker & Docker Compose
-- Python 3.11+ (for local dev)
-- Google Cloud service account with GA4 Admin, GTM, and (optional) BigQuery permissions
-
-### 1. Clone and configure
+### Option 1: One-Command Demo (Easiest)
 
 ```bash
 git clone https://github.com/abhishekshankar/MCP-Metrics.git
 cd MCP-Metrics
-cp config/env.example .env
-# Edit .env with your GTM account ID and credentials path
+./demo.sh          # Creates .env, starts Docker, opens browser
 ```
 
-### 2. Start services
+**That's it.** No Google credentials needed. Runs in mock mode.
+
+### Option 2: Make Commands
 
 ```bash
-docker compose up -d
+make demo          # Same as ./demo.sh
+make stop          # Stop all services
+make clean         # Stop and delete all data
+make test          # Run tests
+make lint          # Run linter
 ```
 
-API available at http://localhost:8000 — health check:
-```bash
-curl http://localhost:8000/health
-```
-
-### 3. Create your first site
-
-```bash
-pip install -e ".[dev]"
-analytics-mcp create \
-  --domain example.com \
-  --name "Example Site" \
-  --env prod \
-  --blueprint saas \
-  --pretty
-```
-
-### 4. Web UI
+### Option 3: Manual Docker
 
 ```bash
-cd web-ui && npm install && npm run dev
+# Clone & start
+git clone https://github.com/abhishekshankar/MCP-Metrics.git
+cd MCP-Metrics
+docker-compose up -d
+
+# Open Web UI
+open http://localhost:5173
 ```
 
-Open http://localhost:5173
+### First Time Setup (Production)
+
+To use real Google Analytics instead of mock mode:
+
+```bash
+# 1. Get Google Cloud credentials
+#    - Create service account at https://console.cloud.google.com
+#    - Enable GA4 Admin API, GTM API
+#    - Download JSON key
+
+# 2. Edit .env
+MOCK_GOOGLE_APIS=false
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
+
+# 3. Restart
+docker-compose restart api
+```
 
 ---
 
@@ -372,7 +401,10 @@ cd web-ui && npm install && npm run dev
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MOCK_GOOGLE_APIS` | Use mock Google APIs (no real credentials needed) | `true` |
+| `MOCK_GOOGLE_APIS` | Use mock Google APIs (no real credentials needed) | `false` ⚠️ |
+| `API_SECRET_KEY` | Secret key for API security | **Required** |
+| `ADMIN_API_KEY` | API key for admin access | **Required** |
+| `READONLY_API_KEY` | API key for read-only access | **Required** |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON | - |
 | `GTM_ACCOUNT_ID` | GTM account ID | `1234567` |
 | `KMS_PROVIDER` | Secrets manager (aws/gcp/azure) | - |
@@ -383,9 +415,14 @@ See `config/env.example` for full configuration options.
 
 ---
 
-## Mock Mode
+## Mock Mode (Development Only)
 
-Set `MOCK_GOOGLE_APIS=true` (default in docker-compose) to run without real Google credentials. All GA4/GTM operations use in-memory mocks — ideal for development and CI.
+Set `MOCK_GOOGLE_APIS=true` to run without real Google credentials. All GA4/GTM operations use in-memory mocks — ideal for development and CI.
+
+**⚠️ Warning:** Mock mode defaults to `false` for production safety. When enabled, a warning is logged:  
+`"MOCK_GOOGLE_APIS is enabled. Google API calls will use fake data. NOT FOR PRODUCTION."`
+
+**docker-compose.yml already sets `MOCK_GOOGLE_APIS=true` for local development.**
 
 ---
 

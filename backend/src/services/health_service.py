@@ -6,13 +6,13 @@ from email.mime.text import MIMEText
 from typing import Any
 
 import httpx
-from sqlalchemy.orm import Session
-
-from config import get_settings
 from models.health_check_result import HealthCheckResult
 from models.site import Site
 from services.audit_service import AuditService
 from services.ga4_service import GA4Service
+from sqlalchemy.orm import Session
+
+from config import get_settings
 
 
 class HealthService:
@@ -79,11 +79,12 @@ class HealthService:
             anomaly_flags=anomaly_flags,
             metrics=metrics,
             baseline_conversion_rate=(
-                previous.conversion_count_24h / max(previous.traffic_sessions_24h or 1, 1)
-                if previous
+                previous.conversion_count_24h / max(previous.traffic_sessions_24h, 1)
+                if previous and previous.traffic_sessions_24h
                 else None
             ),
-            message=f"Health check: {status}" + (f" - {', '.join(anomaly_flags)}" if anomaly_flags else ""),
+            message=f"Health check: {status}"
+            + (f" - {', '.join(anomaly_flags)}" if anomaly_flags else ""),
         )
         self.db.add(result)
         self.db.commit()

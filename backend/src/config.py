@@ -24,10 +24,10 @@ class Settings(BaseSettings):
         "https://www.googleapis.com/auth/bigquery"
     )
     gtm_account_id: str = "1234567"
-    mock_google_apis: bool = True
-    api_secret_key: str = "dev-secret-key"
-    admin_api_key: str = "admin-key"
-    readonly_api_key: str = "readonly-key"
+    mock_google_apis: bool = False  # Default to False for production safety
+    api_secret_key: str  # Must be set via environment variable
+    admin_api_key: str  # Must be set via environment variable
+    readonly_api_key: str  # Must be set via environment variable
     alert_webhook_url: str | None = None
     smtp_host: str | None = None
     smtp_port: int = 587

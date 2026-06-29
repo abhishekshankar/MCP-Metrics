@@ -6,14 +6,17 @@ export default function Dashboard() {
   const [sites, setSites] = useState<Site[]>([])
   const [loading, setLoading] = useState(true)
 
+  const [error, setError] = useState('')
+
   useEffect(() => {
     api<Site[]>('/sites')
       .then(setSites)
-      .catch(console.error)
+      .catch((err) => setError(String(err)))
       .finally(() => setLoading(false))
   }, [])
 
   if (loading) return <p>Loading sites...</p>
+  if (error) return <p className="error">Error loading sites: {error}</p>
 
   return (
     <div>

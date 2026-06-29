@@ -9,10 +9,10 @@ from pathlib import Path
 from google.auth.credentials import Credentials
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
-
-from config import Settings, get_settings
 from observability.logging import logger
 from services.secrets_manager import CredentialsManager
+
+from config import Settings, get_settings
 
 
 class GoogleAuthError(Exception):
@@ -75,28 +75,39 @@ class GoogleAuthProvider:
                 creds_data, scopes=self.scopes
             )
             logger.info("credentials.loaded", source="kms/secrets_manager")
-        elif self._load_credentials_json():
-            creds_data = self._load_credentials_json()
+            return self._credentials
+
+        # Try environment variable JSON
+        env_creds = self._load_credentials_json()
+        if env_creds:
             self._credentials = service_account.Credentials.from_service_account_info(
-                creds_data, scopes=self.scopes  # type: ignore
+                env_creds,
+                scopes=self.scopes,  # type: ignore
             )
             logger.info("credentials.loaded", source="environment_json")
-        elif self.credentials_path and Path(self.credentials_path).is_file():
+            return self._credentials
+
+        # Try file path
+        if self.credentials_path and Path(self.credentials_path).is_file():
             self._credentials = service_account.Credentials.from_service_account_file(
                 self.credentials_path, scopes=self.scopes
             )
             logger.info("credentials.loaded", source="file", path=self.credentials_path)
-        elif self._settings.mock_google_apis:
+            return self._credentials
+
+        # Fallback to mock in dev mode
+        if self._settings.mock_google_apis:
             self._credentials = service_account.Credentials.from_service_account_info(
                 _MOCK_SERVICE_ACCOUNT, scopes=self.scopes
             )
             logger.info("credentials.loaded", source="mock")
-        else:
-            raise GoogleAuthError(
-                "Google credentials not configured. Set GOOGLE_APPLICATION_CREDENTIALS, "
-                "GOOGLE_SERVICE_ACCOUNT_JSON, or configure KMS_PROVIDER with AWS_SECRET_NAME, "
-                "GCP_KMS_KEY_ID, or AZURE_SECRET_NAME."
-            )
+            return self._credentials
+
+        raise GoogleAuthError(
+            "Google credentials not configured. Set GOOGLE_APPLICATION_CREDENTIALS, "
+            "GOOGLE_SERVICE_ACCOUNT_JSON, or configure KMS_PROVIDER with AWS_SECRET_NAME, "
+            "GCP_KMS_KEY_ID, or AZURE_SECRET_NAME."
+        )
 
         return self._credentials
 

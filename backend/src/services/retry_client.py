@@ -5,8 +5,9 @@ import random
 import time
 from typing import Callable, ParamSpec, TypeVar
 
-from config import get_settings
 from observability.logging import log_failure, logger
+
+from config import get_settings
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -14,11 +15,13 @@ T = TypeVar("T")
 
 class RetryableError(Exception):
     """Exception that should trigger a retry."""
+
     pass
 
 
 class NonRetryableError(Exception):
     """Exception that should not trigger a retry."""
+
     pass
 
 
@@ -55,7 +58,7 @@ def retry_with_backoff(
                     last_exception = e
                     if attempt < attempts - 1:
                         # Exponential backoff with full jitter
-                        delay = min(base * (2 ** attempt), max_wait)
+                        delay = min(base * (2**attempt), max_wait)
                         jittered_delay = random.uniform(0, delay)
                         logger.warning(
                             "api.retry",
@@ -67,9 +70,24 @@ def retry_with_backoff(
                         )
                         time.sleep(jittered_delay)
                 except Exception as e:
-                    # Unexpected exception, log and raise
-                    log_failure("api.unexpected_error", error=str(e), function=func.__name__)
-                    raise
+                    # Check if this unexpected exception is actually retryable
+                    if is_retryable_error(e) and attempt < attempts - 1:
+                        last_exception = e
+                        delay = min(base * (2**attempt), max_wait)
+                        jittered_delay = random.uniform(0, delay)
+                        logger.warning(
+                            "api.retry_unexpected",
+                            function=func.__name__,
+                            attempt=attempt + 1,
+                            max_attempts=attempts,
+                            delay=jittered_delay,
+                            error=str(e),
+                        )
+                        time.sleep(jittered_delay)
+                    else:
+                        # Non-retryable unexpected exception, log and raise
+                        log_failure("api.unexpected_error", error=str(e), function=func.__name__)
+                        raise
 
             # All retries exhausted
             log_failure(
@@ -83,6 +101,7 @@ def retry_with_backoff(
             raise RuntimeError(f"Max retries exceeded for {func.__name__}")
 
         return wrapper
+
     return decorator
 
 
@@ -115,7 +134,6 @@ def is_retryable_error(error: Exception) -> bool:
         "internal server error",
         "deadline exceeded",
     ]
-    return (
-        is_rate_limit_error(error)
-        or any(indicator in error_str for indicator in retryable_indicators)
+    return is_rate_limit_error(error) or any(
+        indicator in error_str for indicator in retryable_indicators
     )

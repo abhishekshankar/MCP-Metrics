@@ -14,7 +14,7 @@ class MockGA4Client:
         self._streams: dict[str, dict] = {}
 
     def create_property(self, name: str, timezone: str, currency: str) -> dict[str, Any]:
-        prop_id = f"properties/{hashlib.md5(name.encode()).hexdigest()[:10]}"
+        prop_id = f"properties/{hashlib.sha256(name.encode()).hexdigest()[:16]}"
         prop = {
             "name": prop_id,
             "displayName": name,
@@ -31,7 +31,7 @@ class MockGA4Client:
         stream_key = f"{property_id}:{domain}"
         if stream_key in self._streams:
             return self._streams[stream_key]
-        stream_id = hashlib.md5(stream_key.encode()).hexdigest()[:12]
+        stream_id = hashlib.sha256(stream_key.encode()).hexdigest()[:16]
         measurement_id = f"G-{stream_id[:7].upper()}"
         stream = {
             "name": f"{property_id}/dataStreams/{stream_id}",
@@ -78,7 +78,7 @@ class MockGTMClient:
         key = f"{account_id}:{name}"
         if key in self._containers:
             return self._containers[key]
-        container_id = hashlib.md5(key.encode()).hexdigest()[:8]
+        container_id = hashlib.sha256(key.encode()).hexdigest()[:16]
         container = {
             "containerId": container_id,
             "publicId": f"GTM-{container_id[:4].upper()}",
@@ -93,7 +93,7 @@ class MockGTMClient:
         key = f"{container_id}:{name}"
         if key in self._workspaces:
             return self._workspaces[key]
-        ws_id = hashlib.md5(key.encode()).hexdigest()[:6]
+        ws_id = hashlib.sha256(key.encode()).hexdigest()[:16]
         workspace = {"workspaceId": ws_id, "name": name, "containerId": container_id}
         self._workspaces[key] = workspace
         self._tags[key] = []
@@ -104,7 +104,6 @@ class MockGTMClient:
     def create_tag(
         self, account_id: str, container_id: str, workspace_id: str, tag_config: dict
     ) -> dict[str, Any]:
-        key = f"{container_id}:Default Workspace"
         ws_key = f"{container_id}:Default Workspace"
         tag_id = str(len(self._tags.get(ws_key, [])) + 1)
         tag = {"tagId": tag_id, **tag_config}
@@ -171,6 +170,7 @@ def get_ga4_client():
         return MockGA4Client()
     # Use real client when not in mock mode
     from services.google_clients_real import RealGA4AdminClient
+
     return RealGA4AdminClient()
 
 
@@ -180,4 +180,5 @@ def get_gtm_client():
         return MockGTMClient()
     # Use real client when not in mock mode
     from services.google_clients_real import RealGTMClient
+
     return RealGTMClient()

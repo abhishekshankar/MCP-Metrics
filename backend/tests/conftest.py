@@ -15,13 +15,16 @@ sys.path.insert(0, str(ROOT / "src"))
 
 os.environ["MOCK_GOOGLE_APIS"] = "true"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["API_SECRET_KEY"] = "test-secret-key"
+os.environ["ADMIN_API_KEY"] = "test-admin-key"
+os.environ["READONLY_API_KEY"] = "test-readonly-key"
 
 from config import get_settings  # noqa: E402
 
 get_settings.cache_clear()
 
-from database import Base, get_db  # noqa: E402
 import models  # noqa: F401, E402
+from database import Base, get_db  # noqa: E402
 from main import app  # noqa: E402
 
 

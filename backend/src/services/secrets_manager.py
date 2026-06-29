@@ -5,8 +5,9 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any
 
-from config import get_settings
 from observability.logging import log_failure, logger
+
+from config import get_settings
 
 
 class SecretsProvider(ABC):
@@ -34,6 +35,7 @@ class AWSSecretsProvider(SecretsProvider):
         if self._client is None:
             try:
                 import boto3
+
                 self._client = boto3.client("secretsmanager", region_name=self.region)
             except ImportError:
                 raise ImportError("boto3 is required for AWS Secrets Manager support")
@@ -72,9 +74,12 @@ class GCPSecretsProvider(SecretsProvider):
         if self._client is None:
             try:
                 from google.cloud import secretmanager
+
                 self._client = secretmanager.SecretManagerServiceClient()
             except ImportError:
-                raise ImportError("google-cloud-secret-manager is required for GCP Secret Manager support")
+                raise ImportError(
+                    "google-cloud-secret-manager is required for GCP Secret Manager support"
+                )
         return self._client
 
     def get_secret(self, secret_name: str) -> dict[str, Any] | None:
@@ -117,10 +122,14 @@ class AzureKeyVaultProvider(SecretsProvider):
             try:
                 from azure.identity import DefaultAzureCredential
                 from azure.keyvault.secrets import SecretClient
+
                 credential = DefaultAzureCredential()
                 self._client = SecretClient(vault_url=self.vault_url, credential=credential)
             except ImportError:
-                raise ImportError("azure-identity and azure-keyvault-secrets are required for Azure Key Vault support")
+                raise ImportError(
+                    "azure-identity and azure-keyvault-secrets are required "
+                    "for Azure Key Vault support"
+                )
         return self._client
 
     def get_secret(self, secret_name: str) -> dict[str, Any] | None:
@@ -172,10 +181,16 @@ class CredentialsManager:
 
             if provider_type == "aws":
                 cls._provider = AWSSecretsProvider(settings.aws_region)
-                logger.info("secrets.provider.initialized", provider="aws", region=settings.aws_region)
+                logger.info(
+                    "secrets.provider.initialized", provider="aws", region=settings.aws_region
+                )
             elif provider_type == "gcp":
                 cls._provider = GCPSecretsProvider(settings.google_cloud_project)
-                logger.info("secrets.provider.initialized", provider="gcp", project=settings.google_cloud_project)
+                logger.info(
+                    "secrets.provider.initialized",
+                    provider="gcp",
+                    project=settings.google_cloud_project,
+                )
             elif provider_type == "azure":
                 if not settings.azure_key_vault_url:
                     raise ValueError("AZURE_KEY_VAULT_URL is required for Azure provider")
@@ -216,7 +231,7 @@ class CredentialsManager:
         if settings.google_application_credentials:
             creds_path = settings.google_application_credentials
             if os.path.isfile(creds_path):
-                with open(creds_path) as f:
+                with open(creds_path, encoding="utf-8") as f:
                     return json.load(f)
             else:
                 # Try parsing as inline JSON
@@ -233,13 +248,16 @@ class CredentialsManager:
         settings = get_settings()
 
         # If it's already a file path, return it
-        if settings.google_application_credentials and os.path.isfile(settings.google_application_credentials):
+        if settings.google_application_credentials and os.path.isfile(
+            settings.google_application_credentials
+        ):
             return settings.google_application_credentials
 
         # Try to get from KMS and write to temp file
         creds = cls.get_google_credentials()
         if creds:
             import tempfile
+
             fd, path = tempfile.mkstemp(suffix=".json")
             with os.fdopen(fd, "w") as f:
                 json.dump(creds, f)

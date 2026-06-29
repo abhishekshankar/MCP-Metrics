@@ -25,16 +25,13 @@ export default function CreateSite() {
     setSubmitting(true)
     setError('')
     setResult(null)
-    setProgress('Creating GA4 property...')
+    setProgress('Creating GA4 property, GTM container, and applying tracking blueprint...')
     try {
-      setProgress('Creating GA4 property & web data stream...')
-      await new Promise((r) => setTimeout(r, 300))
-      setProgress('Creating GTM container & GA4 config tag...')
-      await new Promise((r) => setTimeout(r, 300))
-      setProgress('Applying tracking blueprint...')
       const body = {
         ...form,
-        linked_domains: form.linked_domains ? form.linked_domains.split(',').map((d) => d.trim()) : [],
+        linked_domains: form.linked_domains?.trim()
+          ? form.linked_domains.split(',').map((d) => d.trim()).filter(Boolean)
+          : [],
       }
       const data = await api<Record<string, unknown>>('/sites', {
         method: 'POST',

@@ -8,9 +8,8 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any
 
-from playwright.async_api import async_playwright
-
 from observability.logging import log_failure, log_operation
+from playwright.async_api import async_playwright
 
 
 @dataclass
@@ -96,11 +95,18 @@ class PreviewService:
 
                     # Inject GTM Preview mode
                     preview_url = self._build_preview_url(url, container_id, preview_id)
-                    
+
                     await page.goto(preview_url, timeout=self.page_load_timeout)
-                    
-                    # Wait for page to load and GTM to initialize
-                    await asyncio.sleep(2)
+
+                    # Wait for GTM to initialize by checking for dataLayer
+                    try:
+                        await page.wait_for_function(
+                            "() => typeof dataLayer !== 'undefined' && Array.isArray(dataLayer)",
+                            timeout=5000,
+                        )
+                    except Exception:
+                        # dataLayer may not exist, continue anyway
+                        pass
 
                     # Collect dataLayer events
                     result.data_layer_events = await self._collect_data_layer(page)
@@ -116,7 +122,9 @@ class PreviewService:
                         # Auto-detect common tags
                         result.tag_results = await self._auto_detect_tags(page)
 
-                    result.success = all(r.fired for r in result.tag_results) if result.tag_results else True
+                    result.success = (
+                        all(r.fired for r in result.tag_results) if result.tag_results else True
+                    )
 
                     log_operation(
                         "preview.verify",
@@ -127,7 +135,10 @@ class PreviewService:
                     )
 
                 finally:
-                    await browser.close()
+                    try:
+                        await browser.close()
+                    except Exception as close_error:
+                        log_failure("preview.browser_close_failed", error=str(close_error))
 
         except Exception as e:
             log_failure("preview.verify_failed", error=str(e), url=url)
@@ -161,9 +172,7 @@ class PreviewService:
         except Exception as e:
             return [{"error": str(e)}]
 
-    async def _check_tag_firing(
-        self, page, tag_name: str, event_name: str
-    ) -> TagFireResult:
+    async def _check_tag_firing(self, page, tag_name: str, event_name: str) -> TagFireResult:
         """Check if a specific tag fired for an event."""
         result = TagFireResult(tag_name=tag_name, event_name=event_name)
 
@@ -208,27 +217,31 @@ class PreviewService:
         """)
 
         if ga4_check:
-            results.append(TagFireResult(
-                tag_name="GA4 Configuration",
-                event_name="gtm.js",
-                fired=True,
-                firing_count=1,
-            ))
+            results.append(
+                TagFireResult(
+                    tag_name="GA4 Configuration",
+                    event_name="gtm.js",
+                    fired=True,
+                    firing_count=1,
+                )
+            )
 
         # Check for common events
         common_events = ["page_view", "screen_view", "user_engagement"]
         for event in common_events:
             has_event = await page.evaluate(
-                f"""() => typeof dataLayer !== 'undefined' && 
+                f"""() => typeof dataLayer !== 'undefined' &&
                     dataLayer.some(e => e.event === '{event}')"""
             )
             if has_event:
-                results.append(TagFireResult(
-                    tag_name=f"GA4 Event - {event}",
-                    event_name=event,
-                    fired=True,
-                    firing_count=1,
-                ))
+                results.append(
+                    TagFireResult(
+                        tag_name=f"GA4 Event - {event}",
+                        event_name=event,
+                        fired=True,
+                        firing_count=1,
+                    )
+                )
 
         return results
 

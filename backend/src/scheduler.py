@@ -1,11 +1,11 @@
 """Background job scheduler."""
 
 from apscheduler.schedulers.background import BackgroundScheduler
-
-from config import get_settings
 from database import SessionLocal
 from observability.logging import log_operation, logger
 from services.health_service import HealthService
+
+from config import get_settings
 
 _scheduler: BackgroundScheduler | None = None
 
@@ -44,5 +44,5 @@ def start_scheduler() -> BackgroundScheduler:
 def stop_scheduler() -> None:
     global _scheduler
     if _scheduler:
-        _scheduler.shutdown(wait=False)
+        _scheduler.shutdown(wait=True)  # Wait for jobs to complete for data consistency
         _scheduler = None

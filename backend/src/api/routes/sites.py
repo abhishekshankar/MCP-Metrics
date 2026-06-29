@@ -2,17 +2,16 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-
 from api.auth import require_admin, require_read
 from database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
 from observability.logging import increment_metric
+from pydantic import BaseModel, Field
 from services.blueprint_service import BlueprintService
 from services.governance_service import GovernanceService
 from services.health_service import HealthService
 from services.site_service import SiteService
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -267,7 +266,7 @@ class SiteAnalysisRequest(BaseModel):
 
 
 @router.post("/{domain}/analyze")
-def analyze_site(
+async def analyze_site(
     domain: str,
     body: SiteAnalysisRequest,
     environment: str = Query("prod"),
@@ -278,8 +277,6 @@ def analyze_site(
 
     Discovers pages, groups by business purpose, identifies tracking opportunities.
     """
-    import asyncio
-
     from services.site_analyzer import SiteAnalyzer
 
     site_service = SiteService(db)
@@ -295,7 +292,7 @@ def analyze_site(
 
     try:
         url = f"https://{site.domain}"
-        result = asyncio.run(analyzer.analyze_site(url))
+        result = await analyzer.analyze_site(url)
 
         return {
             "domain": domain,
@@ -329,7 +326,7 @@ class PreviewVerificationRequest(BaseModel):
 
 
 @router.post("/{domain}/verify-preview")
-def verify_preview(
+async def verify_preview(
     domain: str,
     body: PreviewVerificationRequest,
     environment: str = Query("prod"),
@@ -341,8 +338,6 @@ def verify_preview(
     Similar to jtrackingai/analytics-tracking-automation's preview verification.
     Opens GTM Preview mode in headless browser and verifies tag firing.
     """
-    import asyncio
-
     from services.preview_service import PreviewService
 
     site_service = SiteService(db)
@@ -362,13 +357,11 @@ def verify_preview(
 
         for path in test_pages:
             url = f"https://{site.domain}{path}"
-            result = asyncio.run(
-                service.verify_preview(
-                    url=url,
-                    container_id=body.container_id,
-                    preview_id=body.preview_id,
-                    expected_tags=body.expected_tags,
-                )
+            result = await service.verify_preview(
+                url=url,
+                container_id=body.container_id,
+                preview_id=body.preview_id,
+                expected_tags=body.expected_tags,
             )
             results.append(
                 {
@@ -399,7 +392,9 @@ def verify_preview(
             "overall_success": all_success,
             "pages_tested": len(results),
             "results": results,
-            "recommendation": "Proceed with publishing" if all_success else "Review failed tags before publishing",
+            "recommendation": "Proceed with publishing"
+            if all_success
+            else "Review failed tags before publishing",
         }
 
     except Exception as e:

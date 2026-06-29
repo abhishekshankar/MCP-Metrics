@@ -1,5 +1,9 @@
 """Sprint 7: Consent, multi-environment, cross-domain tests."""
 
+ADMIN_HEADERS = {"X-API-Key": "test-admin-key"}
+READONLY_HEADERS = {"X-API-Key": "test-readonly-key"}
+
+
 def test_create_with_consent_basic(client):
     response = client.post(
         "/sites",
@@ -9,6 +13,7 @@ def test_create_with_consent_basic(client):
             "consent_preset": "basic",
             "blueprint": "saas",
         },
+        headers=ADMIN_HEADERS,
     )
     assert response.status_code == 200
     assert response.json()["consent_preset"] == "basic"
@@ -23,6 +28,7 @@ def test_create_stage_environment(client):
             "environment": "stage",
             "blueprint": "saas",
         },
+        headers=ADMIN_HEADERS,
     )
     assert response.status_code == 200
     assert response.json()["environment"] == "stage"
@@ -38,6 +44,7 @@ def test_cross_domain_config(client):
             "linked_domains": ["shop.primary.com", "app.primary.com"],
             "blueprint": "saas",
         },
+        headers=ADMIN_HEADERS,
     )
     assert response.status_code == 200
     data = response.json()
@@ -54,8 +61,9 @@ def test_describe_includes_consent(client):
             "consent_preset": "advanced",
             "blueprint": "saas",
         },
+        headers=ADMIN_HEADERS,
     )
-    response = client.get("/sites/describe-consent.com/describe")
+    response = client.get("/sites/describe-consent.com/describe", headers=READONLY_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert data["consent_preset"] == "advanced"

@@ -20,21 +20,14 @@ def get_api_role(api_key: str | None = Security(api_key_header)) -> str:
 
 
 def require_admin(role: str = Depends(get_api_role)) -> str:
-    if role not in ("admin", "anonymous"):
-        if role == "readonly":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    if role == "readonly":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     if role == "anonymous":
-        settings = get_settings()
-        if settings.mock_google_apis:
-            return "admin"  # allow unauthenticated in mock dev mode
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key required")
     return role
 
 
 def require_read(role: str = Depends(get_api_role)) -> str:
     if role == "anonymous":
-        settings = get_settings()
-        if settings.mock_google_apis:
-            return "admin"
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key required")
     return role

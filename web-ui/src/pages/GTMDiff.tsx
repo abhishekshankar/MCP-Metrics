@@ -54,7 +54,7 @@ export default function GTMDiff({ domain }: GTMDiffProps) {
 
   const renderItem = (item: DiffItem, type: string) => (
     <div
-      key={item.tagId || item.triggerId || item.variableId || item.name}
+      key={`${type}-${item.tagId || item.triggerId || item.variableId || item.name || Math.random()}`}
       style={{
         padding: '0.5rem',
         marginBottom: '0.25rem',

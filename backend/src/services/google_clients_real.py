@@ -4,7 +4,6 @@ These clients call the actual Google Analytics Admin API, GTM API, and GA4 Data 
 They are used when MOCK_GOOGLE_APIS=false and credentials are configured.
 """
 
-import json
 import os
 from typing import Any
 
@@ -12,9 +11,9 @@ from google.analytics.admin_v1alpha import AnalyticsAdminServiceClient
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from observability.logging import log_failure, logger
 
 from config import get_settings
-from observability.logging import log_failure, logger
 
 
 class RealGA4AdminClient:
@@ -112,9 +111,7 @@ class RealGA4AdminClient:
                 return None
             raise
 
-    def enable_bigquery_link(
-        self, property_id: str, project: str, dataset: str
-    ) -> dict[str, Any]:
+    def enable_bigquery_link(self, property_id: str, project: str, dataset: str) -> dict[str, Any]:
         """Enable BigQuery export for a property."""
         from google.analytics.admin_v1alpha.types import BigQueryLink
 
@@ -170,9 +167,7 @@ class RealGTMClient:
             logger.info("gtm.service_initialized")
         return self._service
 
-    def create_container(
-        self, account_id: str, name: str, domain: str
-    ) -> dict[str, Any]:
+    def create_container(self, account_id: str, name: str, domain: str) -> dict[str, Any]:
         """Create a GTM container."""
         service = self._get_service()
 
@@ -313,7 +308,9 @@ class RealGTMClient:
                 "type": result["type"],
             }
         except Exception as e:
-            log_failure("gtm.create_trigger_failed", error=str(e), trigger_name=trigger_config.get("name"))
+            log_failure(
+                "gtm.create_trigger_failed", error=str(e), trigger_name=trigger_config.get("name")
+            )
             raise
 
     def create_variable(
@@ -348,7 +345,11 @@ class RealGTMClient:
             raise
 
     def create_version(
-        self, account_id: str, container_id: str, workspace_id: str, name: str = "Published by Analytics MCP"
+        self,
+        account_id: str,
+        container_id: str,
+        workspace_id: str,
+        name: str = "Published by Analytics MCP",
     ) -> dict[str, Any]:
         """Create a container version."""
         service = self._get_service()
@@ -453,7 +454,11 @@ class RealGA4DataClient:
         return self._client
 
     def run_report(
-        self, property_id: str, dimensions: list[str], metrics: list[str], date_range: dict[str, str]
+        self,
+        property_id: str,
+        dimensions: list[str],
+        metrics: list[str],
+        date_range: dict[str, str],
     ) -> dict[str, Any]:
         """Run a GA4 report."""
         from google.analytics.data_v1beta.types import (

@@ -13,10 +13,12 @@ export default function SiteDetail() {
 
   useEffect(() => {
     if (!domain) return
-    api<Site>(`/sites/${domain}`).then(setSite).catch(console.error)
-    api<HealthResult>(`/sites/${domain}/health`).then(setHealth).catch(console.error)
-    api<AuditLog[]>(`/sites/${domain}/audit`).then(setAudit).catch(console.error)
-    api<Record<string, unknown>>(`/sites/${domain}/describe`).then(setDescribe).catch(console.error)
+    Promise.all([
+      api<Site>(`/sites/${domain}`).then(setSite).catch(console.error),
+      api<HealthResult>(`/sites/${domain}/health`).then(setHealth).catch(console.error),
+      api<AuditLog[]>(`/sites/${domain}/audit`).then(setAudit).catch(console.error),
+      api<Record<string, unknown>>(`/sites/${domain}/describe`).then(setDescribe).catch(console.error),
+    ])
   }, [domain])
 
   if (!site) return <p>Loading...</p>
