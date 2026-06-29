@@ -50,3 +50,40 @@ export interface Blueprint {
   description: string
   version: string
 }
+
+export interface AuditFinding {
+  severity: 'critical' | 'warning' | 'info'
+  category: string
+  issue: string
+  description: string
+  affected_pages: string[]
+  fix_recommendation: string
+  fix_complexity: 'simple' | 'moderate' | 'complex'
+}
+
+export interface AuditReport {
+  url: string
+  audit_timestamp: string
+  crawl_pages: number
+  score: number
+  grade: string
+  critical_count: number
+  warning_count: number
+  info_count: number
+  category_scores: Record<string, number>
+  findings: AuditFinding[]
+  working_well: string[]
+  action_plan: Array<{
+    priority: number
+    fix: string
+    effort: string
+    impact: string
+  }>
+}
+
+export async function runAudit(url: string): Promise<AuditReport> {
+  return api<AuditReport>('/audit/check', {
+    method: 'POST',
+    body: JSON.stringify({ url, crawl_depth: 2, max_pages: 20 }),
+  })
+}
