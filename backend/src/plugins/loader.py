@@ -3,9 +3,9 @@
 from pathlib import Path
 
 import yaml
+from observability.logging import logger
 
 from config import get_settings
-from observability.logging import logger
 
 
 class PluginLoader:

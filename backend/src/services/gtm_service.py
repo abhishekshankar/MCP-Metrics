@@ -2,14 +2,14 @@
 
 from typing import Any
 
-from sqlalchemy.orm import Session
-
-from services.google_auth import GoogleAuthProvider
-from config import get_settings
 from models.site import Site
 from services.audit_service import AuditService
+from services.google_auth import GoogleAuthProvider
 from services.google_clients import get_gtm_client
 from services.retry_client import retry_with_backoff
+from sqlalchemy.orm import Session
+
+from config import get_settings
 
 
 class GTMService:
@@ -114,7 +114,9 @@ class GTMService:
                 {
                     "name": "Consent Analytics",
                     "type": "v",
-                    "parameter": [{"type": "template", "key": "name", "value": "analytics_storage"}],
+                    "parameter": [
+                        {"type": "template", "key": "name", "value": "analytics_storage"}
+                    ],
                 },
             )
 
@@ -184,7 +186,11 @@ class GTMService:
         if parameters:
             for param in parameters:
                 tag_params.append(
-                    {"type": "template", "key": f"eventParameters.{param}", "value": f"{{{{{param}}}}}"}
+                    {
+                        "type": "template",
+                        "key": f"eventParameters.{param}",
+                        "value": f"{{{{{param}}}}}",
+                    }
                 )
         tag = self.client.create_tag(
             self.account_id,
@@ -209,22 +215,27 @@ class GTMService:
         actor: str = "system",
         actor_type: str = "system",
     ) -> dict[str, Any]:
-        version = self.client.create_version(self.account_id, container_id, workspace_id)
-        published = self.client.publish_version(
-            self.account_id, container_id, version["containerVersionId"]
-        )
-        if site:
-            site.gtm_latest_version_id = version["containerVersionId"]
-            self.db.commit()
-        self.audit.log(
-            "gtm.publish",
-            site_id=site.id if site else None,
-            domain=site.domain if site else None,
-            actor=actor,
-            actor_type=actor_type,
-            new_value={"version_id": version["containerVersionId"]},
-        )
-        return {"version": version, "published": published}
+        try:
+            version = self.client.create_version(self.account_id, container_id, workspace_id)
+            published = self.client.publish_version(
+                self.account_id, container_id, version["containerVersionId"]
+            )
+            if site:
+                site.gtm_latest_version_id = version["containerVersionId"]
+            self.audit.log(
+                "gtm.publish",
+                site_id=site.id if site else None,
+                domain=site.domain if site else None,
+                actor=actor,
+                actor_type=actor_type,
+                new_value={"version_id": version["containerVersionId"]},
+            )
+            if site:
+                self.db.commit()
+            return {"version": version, "published": published}
+        except Exception:
+            self.db.rollback()
+            raise
 
     def generate_snippets(self, container_public_id: str) -> dict[str, str]:
         head = f"""<!-- Google Tag Manager -->
@@ -256,11 +267,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if site.gtm_container_id and site.gtm_snippets:
             return site
 
-        container = self.create_container(site.name, site.domain, site=site, actor=actor, actor_type=actor_type)
+        container = self.create_container(
+            site.name, site.domain, site=site, actor=actor, actor_type=actor_type
+        )
         site.gtm_container_id = container["containerId"]
         site.gtm_container_public_id = container["publicId"]
 
-        workspace = self.create_workspace(container["containerId"], site=site, actor=actor, actor_type=actor_type)
+        workspace = self.create_workspace(
+            container["containerId"], site=site, actor=actor, actor_type=actor_type
+        )
         site.gtm_workspace_id = workspace["workspaceId"]
 
         if site.ga4_measurement_id:
@@ -276,11 +291,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 actor_type=actor_type,
             )
 
-        self.save_and_publish(
-            container["containerId"], workspace["workspaceId"], site=site, actor=actor, actor_type=actor_type
-        )
-        site.gtm_snippets = self.generate_snippets(container["publicId"])
-        site.status = "active"
-        self.db.commit()
-        self.db.refresh(site)
-        return site
+        try:
+            self.save_and_publish(
+                container["containerId"],
+                workspace["workspaceId"],
+                site=site,
+                actor=actor,
+                actor_type=actor_type,
+            )
+            site.gtm_snippets = self.generate_snippets(container["publicId"])
+            site.status = "active"
+            self.db.commit()
+            self.db.refresh(site)
+            return site
+        except Exception:
+            self.db.rollback()
+            raise

@@ -2,14 +2,14 @@
 
 from typing import Any
 
-from sqlalchemy.orm import Session
-
-from services.google_auth import GoogleAuthProvider
-from config import get_settings
 from models.site import Site
 from services.audit_service import AuditService
+from services.google_auth import GoogleAuthProvider
 from services.google_clients import get_ga4_client
 from services.retry_client import retry_with_backoff
+from sqlalchemy.orm import Session
+
+from config import get_settings
 
 
 class GA4Service:
@@ -137,7 +137,6 @@ class GA4Service:
                 site.bigquery_enabled = True
                 site.bigquery_project = project
                 site.bigquery_dataset = dataset
-                self.db.commit()
             self.audit.log(
                 "ga4.bigquery.enable",
                 site_id=site.id if site else None,
@@ -146,8 +145,11 @@ class GA4Service:
                 actor_type=actor_type,
                 new_value={"project": project, "dataset": dataset},
             )
+            if site:
+                self.db.commit()
             return result
         except Exception as e:
+            self.db.rollback()
             raise RuntimeError(f"Failed to enable BigQuery export: {e}") from e
 
     @retry_with_backoff()
@@ -165,14 +167,18 @@ class GA4Service:
         if site.ga4_property_id and site.ga4_measurement_id:
             return site
 
-        prop = self.create_property(site.name, site=site, actor=actor, actor_type=actor_type)
-        site.ga4_property_id = prop["name"]
+        try:
+            prop = self.create_property(site.name, site=site, actor=actor, actor_type=actor_type)
+            site.ga4_property_id = prop["name"]
 
-        stream = self.create_web_data_stream(
-            prop["name"], site.domain, site=site, actor=actor, actor_type=actor_type
-        )
-        site.ga4_measurement_id = stream["measurementId"]
-        site.ga4_data_stream_id = stream["name"]
-        self.db.commit()
-        self.db.refresh(site)
-        return site
+            stream = self.create_web_data_stream(
+                prop["name"], site.domain, site=site, actor=actor, actor_type=actor_type
+            )
+            site.ga4_measurement_id = stream["measurementId"]
+            site.ga4_data_stream_id = stream["name"]
+            self.db.commit()
+            self.db.refresh(site)
+            return site
+        except Exception:
+            self.db.rollback()
+            raise

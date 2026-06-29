@@ -2,10 +2,9 @@
 
 from contextlib import asynccontextmanager
 
+from api.routes import audit, auth_routes, blueprints, health, sites
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from api.routes import audit, auth_routes, blueprints, health, sites
 from observability.logging import logger
 from plugins.loader import plugin_loader
 from scheduler import start_scheduler, stop_scheduler
@@ -13,9 +12,23 @@ from scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from config import get_settings
+
+    settings = get_settings()
+
+    # Warn if running in mock mode (not for production)
+    if settings.mock_google_apis:
+        logger.warning(
+            "app.running_in_mock_mode",
+            message=(
+                "MOCK_GOOGLE_APIS is enabled. "
+                "Google API calls will use fake data. NOT FOR PRODUCTION."
+            ),
+        )
+
     plugin_loader.load_all()
     start_scheduler()
-    logger.info("app.started")
+    logger.info("app.started", mock_mode=settings.mock_google_apis)
     yield
     stop_scheduler()
     logger.info("app.stopped")
@@ -30,7 +43,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Web UI dev servers
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

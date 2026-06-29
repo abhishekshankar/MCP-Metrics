@@ -6,12 +6,10 @@ Similar to jtrackingai's tracking-discover functionality.
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any
 from urllib.parse import urljoin, urlparse
 
-from playwright.async_api import async_playwright
-
 from observability.logging import log_failure, log_operation
+from playwright.async_api import async_playwright
 
 
 @dataclass
@@ -28,7 +26,9 @@ class PageAnalysis:
     images: list[dict] = field(default_factory=list)
     structured_data: list[dict] = field(default_factory=list)
     business_purpose: str = ""  # e.g., "homepage", "product", "checkout", "content"
-    tracking_potential: list[str] = field(default_factory=list)  # e.g., ["purchase", "signup", "contact"]
+    tracking_potential: list[str] = field(
+        default_factory=list
+    )  # e.g., ["purchase", "signup", "contact"]
 
 
 @dataclass
@@ -80,9 +80,7 @@ class SiteAnalyzer:
         try:
             async with async_playwright() as p:
                 browser = await p.chromium.launch(headless=self.headless)
-                context = await browser.new_context(
-                    user_agent="MCP-Metrics Site Analyzer Bot"
-                )
+                context = await browser.new_context(user_agent="MCP-Metrics Site Analyzer Bot")
 
                 try:
                     # BFS crawl
@@ -143,14 +141,12 @@ class SiteAnalyzer:
 
             # Meta description
             meta_desc = await page.eval_on_selector(
-                'meta[name="description"]',
-                "el => el?.content || ''"
+                'meta[name="description"]', "el => el?.content || ''"
             )
 
             # Headings
             headings = await page.eval_on_selector_all(
-                "h1, h2, h3",
-                "els => els.map(el => el.textContent.trim()).filter(t => t)"
+                "h1, h2, h3", "els => els.map(el => el.textContent.trim()).filter(t => t)"
             )
 
             # Buttons with tracking potential
@@ -158,10 +154,12 @@ class SiteAnalyzer:
                 "button, a.btn, .btn, [role='button']",
                 """els => els.map(el => ({
                     text: el.textContent.trim().substring(0, 50),
-                    selector: el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.className ? '.' + el.className.split(' ')[0] : ''),
+                    selector: el.tagName.toLowerCase() +
+                        (el.id ? '#' + el.id : '') +
+                        (el.className ? '.' + el.className.split(' ')[0] : ''),
                     type: el.type || 'button',
                     href: el.href || null
-                })).filter(b => b.text)"""
+                })).filter(b => b.text)""",
             )
 
             # Forms
@@ -175,13 +173,14 @@ class SiteAnalyzer:
                         type: i.type || i.tagName.toLowerCase(),
                         required: i.required
                     }))
-                }))"""
+                }))""",
             )
 
             # Links
             links = await page.eval_on_selector_all(
                 "a[href]",
-                "els => els.map(el => el.getAttribute('href')).filter(h => h && !h.startsWith('#') && !h.startsWith('javascript:'))"
+                "els => els.map(el => el.getAttribute('href'))"
+                ".filter(h => h && !h.startsWith('#') && !h.startsWith('javascript:'))",
             )
 
             # Images
@@ -192,13 +191,15 @@ class SiteAnalyzer:
                     alt: el.alt,
                     width: el.naturalWidth,
                     height: el.naturalHeight
-                })).filter(i => i.src)"""
+                })).filter(i => i.src)""",
             )
 
             # Structured data
             structured_data = await page.eval_on_selector_all(
                 'script[type="application/ld+json"]',
-                "els => els.map(el => { try { return JSON.parse(el.textContent); } catch { return null; } }).filter(Boolean)"
+                "els => els.map(el => {"
+                " try { return JSON.parse(el.textContent); }"
+                " catch { return null; } }).filter(Boolean)",
             )
 
             analysis = PageAnalysis(
@@ -242,9 +243,20 @@ class SiteAnalyzer:
 
         # Skip common non-content URLs
         skip_patterns = [
-            ".pdf", ".jpg", ".png", ".gif", ".css", ".js",
-            "/wp-admin", "/wp-includes", "/admin", "/api/",
-            "?", "/tag/", "/author/", "/search",
+            ".pdf",
+            ".jpg",
+            ".png",
+            ".gif",
+            ".css",
+            ".js",
+            "/wp-admin",
+            "/wp-includes",
+            "/admin",
+            "/api/",
+            "?",
+            "/tag/",
+            "/author/",
+            "/search",
         ]
         if any(pattern in url.lower() for pattern in skip_patterns):
             return False
@@ -275,7 +287,11 @@ class SiteAnalyzer:
             return "pricing"
 
         # Homepage
-        if url_lower.rstrip("/") == urlparse(page.url).netloc or url_lower.endswith("/") and url_lower.count("/") <= 3:
+        if (
+            url_lower.rstrip("/") == urlparse(page.url).netloc
+            or url_lower.endswith("/")
+            and url_lower.count("/") <= 3
+        ):
             if "home" in title_lower or len(page.url.split("/")) <= 4:
                 return "homepage"
 
@@ -301,7 +317,10 @@ class SiteAnalyzer:
         for form in page.forms:
             if any(inp.get("type") == "email" for inp in form.get("inputs", [])):
                 opportunities.append("signup" if "signup" in page.url.lower() else "lead_form")
-            if any(inp.get("name", "").lower() in ["search", "q", "query"] for inp in form.get("inputs", [])):
+            if any(
+                inp.get("name", "").lower() in ["search", "q", "query"]
+                for inp in form.get("inputs", [])
+            ):
                 opportunities.append("search")
 
         # Check for CTAs

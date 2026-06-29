@@ -6,6 +6,9 @@ from services.ga4_service import GA4Service
 from services.governance_service import GovernanceService
 from services.gtm_service import GTMService
 
+ADMIN_HEADERS = {"X-API-Key": "test-admin-key"}
+READONLY_HEADERS = {"X-API-Key": "test-readonly-key"}
+
 
 def _setup_site(db_session):
     site = Site(domain="gov-test.com", name="Gov Test", environment="prod", status="pending")
@@ -19,8 +22,12 @@ def _setup_site(db_session):
 
 
 def test_audit_log_api(client):
-    client.post("/sites", json={"domain": "audit-test.com", "name": "Audit", "blueprint": "saas"})
-    response = client.get("/audit", params={"domain": "audit-test.com"})
+    client.post(
+        "/sites",
+        json={"domain": "audit-test.com", "name": "Audit", "blueprint": "saas"},
+        headers=ADMIN_HEADERS,
+    )
+    response = client.get("/audit", params={"domain": "audit-test.com"}, headers=READONLY_HEADERS)
     assert response.status_code == 200
     logs = response.json()
     assert len(logs) > 0
@@ -38,8 +45,14 @@ def test_rollback(db_session):
 
 
 def test_rollback_api(client):
-    client.post("/sites", json={"domain": "rollback-test.com", "name": "Rollback", "blueprint": "saas"})
-    response = client.post("/sites/rollback-test.com/rollback", json={"version": 1})
+    client.post(
+        "/sites",
+        json={"domain": "rollback-test.com", "name": "Rollback", "blueprint": "saas"},
+        headers=ADMIN_HEADERS,
+    )
+    response = client.post(
+        "/sites/rollback-test.com/rollback", json={"version": 1}, headers=ADMIN_HEADERS
+    )
     assert response.status_code == 200
 
 

@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from models.blueprint_version import BlueprintVersion
+from models.site import Site
 from pydantic import BaseModel, Field
+from services.audit_service import AuditService
+from services.gtm_service import GTMService
 from sqlalchemy.orm import Session
 
 from config import get_settings
-from models.blueprint_version import BlueprintVersion
-from models.site import Site
-from services.audit_service import AuditService
-from services.gtm_service import GTMService
 
 
 class BlueprintEvent(BaseModel):
@@ -122,9 +122,7 @@ class BlueprintService:
 
         gtm_config = self.gtm.get_config(site.gtm_container_id)
         version_count = (
-            self.db.query(BlueprintVersion)
-            .filter(BlueprintVersion.site_id == site.id)
-            .count()
+            self.db.query(BlueprintVersion).filter(BlueprintVersion.site_id == site.id).count()
         )
         bp_version = BlueprintVersion(
             site_id=site.id,

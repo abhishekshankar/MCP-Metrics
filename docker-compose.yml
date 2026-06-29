@@ -27,6 +27,10 @@ services:
       LOG_LEVEL: info
       MOCK_GOOGLE_APIS: "true"
       PYTHONPATH: /app/backend/src
+      # Development API keys (change for production!)
+      API_SECRET_KEY: dev-api-secret-key-change-in-production
+      ADMIN_API_KEY: dev-admin-key-change-in-production
+      READONLY_API_KEY: dev-readonly-key-change-in-production
     depends_on:
       db:
         condition: service_healthy

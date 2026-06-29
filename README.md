@@ -372,7 +372,10 @@ cd web-ui && npm install && npm run dev
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MOCK_GOOGLE_APIS` | Use mock Google APIs (no real credentials needed) | `true` |
+| `MOCK_GOOGLE_APIS` | Use mock Google APIs (no real credentials needed) | `false` ⚠️ |
+| `API_SECRET_KEY` | Secret key for API security | **Required** |
+| `ADMIN_API_KEY` | API key for admin access | **Required** |
+| `READONLY_API_KEY` | API key for read-only access | **Required** |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON | - |
 | `GTM_ACCOUNT_ID` | GTM account ID | `1234567` |
 | `KMS_PROVIDER` | Secrets manager (aws/gcp/azure) | - |
@@ -383,9 +386,14 @@ See `config/env.example` for full configuration options.
 
 ---
 
-## Mock Mode
+## Mock Mode (Development Only)
 
-Set `MOCK_GOOGLE_APIS=true` (default in docker-compose) to run without real Google credentials. All GA4/GTM operations use in-memory mocks — ideal for development and CI.
+Set `MOCK_GOOGLE_APIS=true` to run without real Google credentials. All GA4/GTM operations use in-memory mocks — ideal for development and CI.
+
+**⚠️ Warning:** Mock mode defaults to `false` for production safety. When enabled, a warning is logged:  
+`"MOCK_GOOGLE_APIS is enabled. Google API calls will use fake data. NOT FOR PRODUCTION."`
+
+**docker-compose.yml already sets `MOCK_GOOGLE_APIS=true` for local development.**
 
 ---
 

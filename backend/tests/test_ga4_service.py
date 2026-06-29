@@ -1,7 +1,7 @@
 """Sprint 2: GA4Service tests."""
 
-from services.ga4_service import GA4Service
 from models.site import Site
+from services.ga4_service import GA4Service
 
 
 def test_create_property(db_session):

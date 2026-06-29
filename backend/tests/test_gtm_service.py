@@ -32,9 +32,7 @@ def test_save_and_publish(db_session):
     service = GTMService(db_session)
     container = service.create_container("Test", "example.com")
     workspace = service.create_workspace(container["containerId"])
-    service.create_ga4_config_tag(
-        container["containerId"], workspace["workspaceId"], "G-TEST123"
-    )
+    service.create_ga4_config_tag(container["containerId"], workspace["workspaceId"], "G-TEST123")
     result = service.save_and_publish(container["containerId"], workspace["workspaceId"])
     assert result["published"]["published"] is True
 

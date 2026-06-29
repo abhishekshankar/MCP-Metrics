@@ -2,12 +2,11 @@
 
 from typing import Any
 
-from sqlalchemy.orm import Session
-
 from models.blueprint_version import BlueprintVersion
 from models.site import Site
 from services.audit_service import AuditService
 from services.gtm_service import GTMService
+from sqlalchemy.orm import Session
 
 
 class GovernanceService:

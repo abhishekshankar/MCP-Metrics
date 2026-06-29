@@ -40,7 +40,7 @@ export default function HealthCharts({ domain }: HealthChartsProps) {
             day: 'numeric',
           }),
         }))
-        setHistory(formatted.reverse())
+        setHistory([...formatted].reverse())
       })
       .catch(console.error)
       .finally(() => setLoading(false))

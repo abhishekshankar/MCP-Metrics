@@ -33,3 +33,6 @@ web-ui/dist/
 
 # Docker
 postgres_data/
+
+# Claude plugins (local tools)
+.claude/plugins/

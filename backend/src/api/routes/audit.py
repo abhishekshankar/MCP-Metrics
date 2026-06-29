@@ -1,11 +1,10 @@
 """Audit log API routes."""
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
-
 from api.auth import require_read
 from database import get_db
+from fastapi import APIRouter, Depends, Query
 from services.audit_service import AuditService
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 

@@ -5,7 +5,12 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
   })
-  if (!res.ok) throw new Error(await res.text())
+  if (!res.ok) {
+    const errorText = await res.text()
+    // Sanitize error text to prevent XSS
+    const sanitized = errorText.replace(/[<>]/g, '')
+    throw new Error(`API Error (${res.status}): ${sanitized.slice(0, 200)}`)
+  }
   return res.json()
 }
 

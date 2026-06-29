@@ -5,6 +5,9 @@ from services.ga4_service import GA4Service
 from services.gtm_service import GTMService
 from services.health_service import HealthService
 
+ADMIN_HEADERS = {"X-API-Key": "test-admin-key"}
+READONLY_HEADERS = {"X-API-Key": "test-readonly-key"}
+
 
 def _active_site(db_session):
     site = Site(domain="health-test.com", name="Health Test", environment="prod", status="pending")
@@ -27,8 +30,12 @@ def test_health_check(db_session):
 
 
 def test_health_api(client):
-    client.post("/sites", json={"domain": "health-api.com", "name": "Health API", "blueprint": "saas"})
-    response = client.get("/sites/health-api.com/health")
+    client.post(
+        "/sites",
+        json={"domain": "health-api.com", "name": "Health API", "blueprint": "saas"},
+        headers=ADMIN_HEADERS,
+    )
+    response = client.get("/sites/health-api.com/health", headers=READONLY_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert "status" in data

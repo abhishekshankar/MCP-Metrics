@@ -4,7 +4,7 @@ import { api, Blueprint } from '../api'
 export default function Blueprints() {
   const [blueprints, setBlueprints] = useState<Blueprint[]>([])
   const [selected, setSelected] = useState<string | null>(null)
-  const [yaml, setYaml] = useState('')
+  const [content, setContent] = useState('')
   const [applyDomain, setApplyDomain] = useState('')
   const [message, setMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -19,7 +19,7 @@ export default function Blueprints() {
     setSelected(name)
     setShowNewBlueprint(false)
     const data = await api<Record<string, unknown>>(`/blueprints/${name}`)
-    setYaml(JSON.stringify(data, null, 2))
+    setContent(JSON.stringify(data, null, 2))
   }
 
   const applyBlueprint = async () => {
@@ -40,10 +40,10 @@ export default function Blueprints() {
     if (!selected) return
     setIsSaving(true)
     try {
-      const content = JSON.parse(yaml)
+      const parsed = JSON.parse(content)
       await api(`/blueprints/${selected}`, {
         method: 'POST',
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content: parsed }),
       })
       setMessage(`Saved blueprint '${selected}' successfully`)
     } catch (err) {
@@ -76,7 +76,7 @@ export default function Blueprints() {
         }
       }
     }
-    setYaml(JSON.stringify(template, null, 2))
+    setContent(JSON.stringify(template, null, 2))
     setSelected(newBlueprintName)
     setShowNewBlueprint(false)
     setNewBlueprintName('')
@@ -118,7 +118,7 @@ export default function Blueprints() {
             <p style={{ color: '#94a3b8', marginBottom: '1rem' }}>
               {blueprints.find((b) => b.name === selected)?.description}
             </p>
-            <textarea rows={20} value={yaml} onChange={(e) => setYaml(e.target.value)} />
+            <textarea rows={20} value={content} onChange={(e) => setContent(e.target.value)} />
             <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <input placeholder="domain to apply" value={applyDomain} onChange={(e) => setApplyDomain(e.target.value)} style={{ marginBottom: 0, flex: 1 }} />
               <button onClick={applyBlueprint}>Apply to Site</button>

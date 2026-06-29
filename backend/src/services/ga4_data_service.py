@@ -13,10 +13,10 @@ from google.analytics.data_v1beta.types import (
     Metric,
     RunReportRequest,
 )
-
-from config import get_settings
 from observability.logging import log_failure, log_operation
 from services.google_auth import GoogleAuthProvider
+
+from config import get_settings
 
 
 class GA4DataService:
@@ -34,42 +34,131 @@ class GA4DataService:
         "city": {"category": "Geography", "description": "City of the user"},
         "language": {"category": "Platform/Device", "description": "Language of the browser"},
         "browser": {"category": "Platform/Device", "description": "Browser name"},
-        "deviceCategory": {"category": "Platform/Device", "description": "Device category (desktop, mobile, tablet)"},
+        "deviceCategory": {
+            "category": "Platform/Device",
+            "description": "Device category (desktop, mobile, tablet)",
+        },
         "operatingSystem": {"category": "Platform/Device", "description": "Operating system"},
         "hostname": {"category": "Page/Screen", "description": "Hostname of the URL"},
         "pagePath": {"category": "Page/Screen", "description": "Path of the page"},
         "pageTitle": {"category": "Page/Screen", "description": "Title of the page"},
         "landingPage": {"category": "Page/Screen", "description": "Landing page path"},
         "eventName": {"category": "Event", "description": "Name of the event"},
-        "isConversionEvent": {"category": "Event", "description": "Whether event is marked as conversion"},
+        "isConversionEvent": {
+            "category": "Event",
+            "description": "Whether event is marked as conversion",
+        },
         "eventParameter": {"category": "Event", "description": "Event parameter key"},
-        "customEvent:parameter_name": {"category": "Event", "description": "Custom event parameter (replace parameter_name)"},
-        "sessionSource": {"category": "Traffic Source", "description": "Source that started the session"},
-        "sessionMedium": {"category": "Traffic Source", "description": "Medium that started the session"},
-        "sessionCampaign": {"category": "Traffic Source", "description": "Campaign that started the session"},
-        "sessionDefaultChannelGroup": {"category": "Traffic Source", "description": "Default channel grouping"},
+        "customEvent:parameter_name": {
+            "category": "Event",
+            "description": "Custom event parameter (replace parameter_name)",
+        },
+        "sessionSource": {
+            "category": "Traffic Source",
+            "description": "Source that started the session",
+        },
+        "sessionMedium": {
+            "category": "Traffic Source",
+            "description": "Medium that started the session",
+        },
+        "sessionCampaign": {
+            "category": "Traffic Source",
+            "description": "Campaign that started the session",
+        },
+        "sessionDefaultChannelGroup": {
+            "category": "Traffic Source",
+            "description": "Default channel grouping",
+        },
     }
 
     COMMON_METRICS = {
-        "activeUsers": {"category": "User", "description": "Number of distinct active users", "type": "integer"},
+        "activeUsers": {
+            "category": "User",
+            "description": "Number of distinct active users",
+            "type": "integer",
+        },
         "newUsers": {"category": "User", "description": "Number of new users", "type": "integer"},
-        "totalUsers": {"category": "User", "description": "Total number of users", "type": "integer"},
+        "totalUsers": {
+            "category": "User",
+            "description": "Total number of users",
+            "type": "integer",
+        },
         "sessions": {"category": "Session", "description": "Number of sessions", "type": "integer"},
-        "sessionsPerUser": {"category": "Session", "description": "Average sessions per user", "type": "float"},
-        "averageSessionDuration": {"category": "Session", "description": "Average session duration in seconds", "type": "seconds"},
-        "bounceRate": {"category": "Session", "description": "Percentage of sessions with single pageview", "type": "percent"},
-        "engagementRate": {"category": "Session", "description": "Percentage of engaged sessions", "type": "percent"},
-        "eventCount": {"category": "Event", "description": "Total number of events", "type": "integer"},
-        "eventCountPerUser": {"category": "Event", "description": "Average events per user", "type": "float"},
-        "eventsPerSession": {"category": "Event", "description": "Average events per session", "type": "float"},
-        "conversions": {"category": "Conversions", "description": "Number of conversion events", "type": "integer"},
-        "conversionRate": {"category": "Conversions", "description": "Conversion rate per session", "type": "percent"},
-        "totalAdRevenue": {"category": "Monetization", "description": "Total ad revenue", "type": "currency"},
-        "publisherAdClicks": {"category": "Monetization", "description": "Number of ad clicks", "type": "integer"},
-        "publisherAdImpressions": {"category": "Monetization", "description": "Number of ad impressions", "type": "integer"},
-        "screenPageViews": {"category": "Page/Screen", "description": "Number of pageviews", "type": "integer"},
-        "screenPageViewsPerUser": {"category": "Page/Screen", "description": "Average pageviews per user", "type": "float"},
-        "screenPageViewsPerSession": {"category": "Page/Screen", "description": "Average pageviews per session", "type": "float"},
+        "sessionsPerUser": {
+            "category": "Session",
+            "description": "Average sessions per user",
+            "type": "float",
+        },
+        "averageSessionDuration": {
+            "category": "Session",
+            "description": "Average session duration in seconds",
+            "type": "seconds",
+        },
+        "bounceRate": {
+            "category": "Session",
+            "description": "Percentage of sessions with single pageview",
+            "type": "percent",
+        },
+        "engagementRate": {
+            "category": "Session",
+            "description": "Percentage of engaged sessions",
+            "type": "percent",
+        },
+        "eventCount": {
+            "category": "Event",
+            "description": "Total number of events",
+            "type": "integer",
+        },
+        "eventCountPerUser": {
+            "category": "Event",
+            "description": "Average events per user",
+            "type": "float",
+        },
+        "eventsPerSession": {
+            "category": "Event",
+            "description": "Average events per session",
+            "type": "float",
+        },
+        "conversions": {
+            "category": "Conversions",
+            "description": "Number of conversion events",
+            "type": "integer",
+        },
+        "conversionRate": {
+            "category": "Conversions",
+            "description": "Conversion rate per session",
+            "type": "percent",
+        },
+        "totalAdRevenue": {
+            "category": "Monetization",
+            "description": "Total ad revenue",
+            "type": "currency",
+        },
+        "publisherAdClicks": {
+            "category": "Monetization",
+            "description": "Number of ad clicks",
+            "type": "integer",
+        },
+        "publisherAdImpressions": {
+            "category": "Monetization",
+            "description": "Number of ad impressions",
+            "type": "integer",
+        },
+        "screenPageViews": {
+            "category": "Page/Screen",
+            "description": "Number of pageviews",
+            "type": "integer",
+        },
+        "screenPageViewsPerUser": {
+            "category": "Page/Screen",
+            "description": "Average pageviews per user",
+            "type": "float",
+        },
+        "screenPageViewsPerSession": {
+            "category": "Page/Screen",
+            "description": "Average pageviews per session",
+            "type": "float",
+        },
     }
 
     def __init__(self):
@@ -90,22 +179,30 @@ class GA4DataService:
 
         for name, info in self.COMMON_DIMENSIONS.items():
             if keyword_lower in name.lower() or keyword_lower in info["description"].lower():
-                results["dimensions"].append({
-                    "name": name,
-                    "category": info["category"],
-                    "description": info["description"],
-                })
+                results["dimensions"].append(
+                    {
+                        "name": name,
+                        "category": info["category"],
+                        "description": info["description"],
+                    }
+                )
 
         for name, info in self.COMMON_METRICS.items():
             if keyword_lower in name.lower() or keyword_lower in info["description"].lower():
-                results["metrics"].append({
-                    "name": name,
-                    "category": info["category"],
-                    "description": info["description"],
-                    "type": info["type"],
-                })
+                results["metrics"].append(
+                    {
+                        "name": name,
+                        "category": info["category"],
+                        "description": info["description"],
+                        "type": info["type"],
+                    }
+                )
 
-        log_operation("ga4.search_schema", keyword=keyword, results_count=len(results["dimensions"]) + len(results["metrics"]))
+        log_operation(
+            "ga4.search_schema",
+            keyword=keyword,
+            results_count=len(results["dimensions"]) + len(results["metrics"]),
+        )
         return results
 
     def get_dimensions_by_category(self, category: str | None = None) -> dict[str, Any]:
@@ -113,7 +210,9 @@ class GA4DataService:
         dimensions = self.COMMON_DIMENSIONS
 
         if category:
-            dimensions = {k: v for k, v in dimensions.items() if v["category"].lower() == category.lower()}
+            dimensions = {
+                k: v for k, v in dimensions.items() if v["category"].lower() == category.lower()
+            }
 
         # Group by category
         grouped: dict[str, list[dict]] = {}
@@ -130,7 +229,9 @@ class GA4DataService:
         metrics = self.COMMON_METRICS
 
         if category:
-            metrics = {k: v for k, v in metrics.items() if v["category"].lower() == category.lower()}
+            metrics = {
+                k: v for k, v in metrics.items() if v["category"].lower() == category.lower()
+            }
 
         # Group by category
         grouped: dict[str, list[dict]] = {}
@@ -138,7 +239,9 @@ class GA4DataService:
             cat = info["category"]
             if cat not in grouped:
                 grouped[cat] = []
-            grouped[cat].append({"name": name, "description": info["description"], "type": info["type"]})
+            grouped[cat].append(
+                {"name": name, "description": info["description"], "type": info["type"]}
+            )
 
         return {"metrics": grouped, "total": len(metrics)}
 
@@ -183,7 +286,9 @@ class GA4DataService:
             client = BetaAnalyticsDataClient(credentials=credentials)
 
             # Validate dimensions and metrics
-            valid_dims = [d for d in dimensions if d in self.COMMON_DIMENSIONS or d.startswith("customEvent:")]
+            valid_dims = [
+                d for d in dimensions if d in self.COMMON_DIMENSIONS or d.startswith("customEvent:")
+            ]
             valid_metrics = [m for m in metrics if m in self.COMMON_METRICS]
 
             if not valid_dims or not valid_metrics:
@@ -277,16 +382,28 @@ class GA4DataService:
 
         # Generate mock rows
         rows = []
-        for date in dates[:min(len(dates), limit)]:
+        for date in dates[: min(len(dates), limit)]:
             row = {d: date if d == "date" else f"mock_{d}" for d in dimensions}
             for m in metrics:
-                if m in ["activeUsers", "newUsers", "totalUsers", "sessions", "eventCount", "conversions"]:
+                if m in [
+                    "activeUsers",
+                    "newUsers",
+                    "totalUsers",
+                    "sessions",
+                    "eventCount",
+                    "conversions",
+                ]:
                     row[m] = random.randint(100, 10000)
                 elif m in ["bounceRate", "engagementRate", "conversionRate"]:
                     row[m] = random.uniform(0.1, 0.8)
                 elif m in ["averageSessionDuration"]:
                     row[m] = random.uniform(30, 300)
-                elif m in ["sessionsPerUser", "eventCountPerUser", "eventsPerSession", "screenPageViewsPerUser"]:
+                elif m in [
+                    "sessionsPerUser",
+                    "eventCountPerUser",
+                    "eventsPerSession",
+                    "screenPageViewsPerUser",
+                ]:
                     row[m] = random.uniform(1.0, 5.0)
                 else:
                     row[m] = random.randint(0, 1000)
@@ -306,5 +423,8 @@ class GA4DataService:
                 "sampling_level": "HIGHER_PRECISION",
                 "mock": True,
             },
-            "note": "Running in mock mode. Set MOCK_GOOGLE_APIS=false and configure GOOGLE_APPLICATION_CREDENTIALS for real data.",
+            "note": (
+                "Running in mock mode. Set MOCK_GOOGLE_APIS=false "
+                "and configure GOOGLE_APPLICATION_CREDENTIALS for real data."
+            ),
         }

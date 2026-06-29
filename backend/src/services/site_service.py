@@ -2,13 +2,12 @@
 
 from typing import Any
 
-from sqlalchemy.orm import Session
-
 from models.site import Site
 from services.audit_service import AuditService
 from services.blueprint_service import BlueprintService
 from services.ga4_service import GA4Service
 from services.gtm_service import GTMService
+from sqlalchemy.orm import Session
 
 
 class SiteService:
@@ -128,7 +127,10 @@ class SiteService:
         consent_docs = {
             "none": "No consent gating. All tags fire on all pages. Use only for dev/lab.",
             "basic": "Tags fire when analytics_storage consent is granted via dataLayer.",
-            "advanced": "Full CMP integration via dataLayer consent events (analytics_storage, ad_storage).",
+            "advanced": (
+                "Full CMP integration via dataLayer consent events "
+                "(analytics_storage, ad_storage)."
+            ),
         }
 
         events = []
